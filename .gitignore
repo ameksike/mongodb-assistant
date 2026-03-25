@@ -3,7 +3,13 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-tmp/
+# Local LLM model files
+models/*.gguf
+models/*.bin
+
+# Environment config (sensitive)
+cfg/.env
+
 # C extensions
 *.so
 
