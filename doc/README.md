@@ -47,14 +47,29 @@ All components are class-based (OOP). Abstract interfaces define contracts; conc
 - **Config**: `LLM_PROVIDER=LOCAL`, `LOCAL_MODEL_PATH`, `LOCAL_MODEL_N_CTX`, `LOCAL_MODEL_N_THREADS`, `LOCAL_MODEL_TEMPERATURE`
 - **Storage**: Place the `.gguf` file in the `models/` directory
 
-### Downloading the Local Model
+### Downloading Models
 
-1. Download the GGUF model from Hugging Face:
-   ```
-   https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF
-   ```
+Models are managed through `cfg/models.json` (catalog) and `scripts/downloadModel.py`.
+
+**Automated download (recommended):**
+```bash
+make model-download                # download default model
+make model-list                    # list available models
+make model-select MODEL=phi-2     # download a specific model
+```
+
+**Manual download:**
+1. Download from Hugging Face (e.g. `https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF`)
 2. Choose the `Q4_K_M` quantization for best balance of quality and performance.
-3. Place the file in `models/mistral-7b-instruct-v0.2.Q4_K_M.gguf`.
+3. Place the file in `models/` directory.
+4. Update `LOCAL_MODEL_PATH` in `cfg/.env`.
+
+**Custom model from any Hugging Face repo:**
+```bash
+make model-custom REPO=TheBloke/Model-GGUF FILE=model.Q4_K_M.gguf
+```
+
+The download script automatically updates `cfg/.env` with the correct model path.
 
 ## Workflow JSON Schema
 

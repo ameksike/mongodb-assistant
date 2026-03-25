@@ -1,37 +1,79 @@
-# Conversational Assistance System
+# 🤖 Conversational Assistance System
 
 A dynamic conversational assistance system built with **Python**, **FastAPI**, **LangChain**, and LLMs. The system analyzes conversation context and guides interactions based on configurable workflow definitions.
 
 ---
 
-## Features
+## ✨ Features
 
-- Workflow-driven conversation guidance with configurable steps, goals, and policies
-- Pluggable workflow providers: **JSON files** (local) or **MongoDB** (remote)
-- Pluggable LLM providers: **Vertex AI Gemini 2.5 Flash** (remote) or **local GGUF model** via llama-cpp-python
-- Dependency Injection architecture for seamless provider switching
-- Pydantic request/response validation
-- Class-based OOP design throughout
+- 📋 Workflow-driven conversation guidance with configurable steps, goals, and policies
+- 🔌 Pluggable workflow providers: **JSON files** (local) or **MongoDB** (remote)
+- 🧠 Pluggable LLM providers: **Vertex AI Gemini 2.5 Flash** (remote) or **local GGUF model** via llama-cpp-python
+- 💉 Dependency Injection architecture for seamless provider switching
+- ✅ Pydantic request/response validation
+- 🏗️ Class-based OOP design throughout
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 # Clone and setup
 git clone <repo-url>
 cd mongodb-assistant
-python -m venv venv
+make venv
 source venv/bin/activate
-pip install -r requirements.txt
+make setup
 
-# Configure environment
-cp cfg/.env.example cfg/.env
-# Edit cfg/.env with your settings
+# Download a local LLM model
+make model-download
 
-# Run the server
-uvicorn src.main:app --reload
+# Start the server
+make dev
 ```
 
-## API
+## 📦 Available Commands
+
+Run `make help` to see all commands:
+
+| Command | Description |
+|---|---|
+| `make setup` | Full project setup (install deps + create .env) |
+| `make install` | Install all project dependencies |
+| `make dev` | Start server in development mode (auto-reload) |
+| `make start` | Start server in production mode |
+| `make test` | Run all tests |
+| `make check` | Run linter + tests |
+| `make model-download` | Download the default local LLM model |
+| `make model-list` | List available models in the catalog |
+| `make model-select MODEL=name` | Download a specific model from the catalog |
+| `make model-custom REPO=x FILE=y` | Download any GGUF model from Hugging Face |
+| `make lint` | Run linter (ruff) |
+| `make format` | Format code (black) |
+| `make clean` | Remove cache files and build artifacts |
+| `make info` | Show current project configuration |
+| `make health` | Check if the server is running |
+| `make help` | Show all available commands |
+
+## 🧠 Model Management
+
+Models are managed through `cfg/models.json` (catalog) and downloaded via `scripts/downloadModel.py`.
+
+```bash
+# List available models
+make model-list
+
+# Download the default model (Mistral 7B Instruct Q4_K_M)
+make model-download
+
+# Download a specific catalog model
+make model-select MODEL=phi-2
+
+# Download any GGUF from Hugging Face
+make model-custom REPO=TheBloke/Mistral-7B-Instruct-v0.2-GGUF FILE=mistral-7b-instruct-v0.2.Q5_K_M.gguf
+```
+
+The download script automatically updates `cfg/.env` with the new model path.
+
+## 🔗 API
 
 ### `POST /api/process`
 
@@ -65,7 +107,7 @@ Send a workflow ID and conversation history to get the current step and suggeste
 
 Health check endpoint.
 
-## Configuration
+## ⚙️ Configuration
 
 All settings are loaded from `cfg/.env`:
 
@@ -78,29 +120,35 @@ All settings are loaded from `cfg/.env`:
 | `GCP_PROJECT_ID` | - | Google Cloud project (for REMOTE LLM) |
 | `MDB_URI` | - | MongoDB connection URI (for MDB workflows) |
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-cfg/workflows/       # JSON workflow definitions
-doc/                 # Detailed documentation
-iac/                 # Infrastructure files (Docker/K8s)
-models/              # Local LLM model files (.gguf)
-src/controllers/     # FastAPI REST API layer
-src/services/        # Business logic (abstract + concrete)
-src/utils/           # Utility classes
-tests/               # Unit and integration tests
+cfg/
+  workflows/           JSON workflow definitions
+  models.json          Model download catalog
+  .env                 Environment configuration
+doc/                   Detailed documentation
+iac/                   Infrastructure files (Docker/K8s)
+models/                Local LLM model files (.gguf)
+scripts/               Automation scripts
+src/controllers/       FastAPI REST API layer
+src/services/          Business logic (abstract + concrete)
+src/utils/             Utility classes
+tests/                 Unit and integration tests
 ```
 
-## Documentation
+## 📚 Documentation
 
 See [doc/README.md](doc/README.md) for detailed architecture and provider documentation.
 
-## Testing
+## 🧪 Testing
 
 ```bash
-pytest tests/ -v
+make test         # Run all tests
+make test-cov     # Run tests with coverage
+make check        # Lint + tests
 ```
 
-## License
+## 📄 License
 
 See [LICENSE](LICENSE).
