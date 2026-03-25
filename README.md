@@ -141,6 +141,24 @@ tests/                 Unit and integration tests
 
 See [doc/README.md](doc/README.md) for detailed architecture and provider documentation.
 
+### Related standards (agentic commerce and agents)
+
+These open protocols sit alongside conversational and commerce-oriented agent systems; they are useful background when extending this assistant toward interoperable agents or checkout flows.
+
+| Topic | Description | Documentation |
+|--------|--------------|---------------|
+| **UCP** | Universal Commerce Protocol — common language for platforms, agents, and merchants for agentic commerce | [ucp.dev](https://ucp.dev/) · [Specification overview](https://ucp.dev/latest/specification/overview/) · [Google Merchant / UCP](https://developers.google.com/merchant/ucp) · [GitHub: Universal-Commerce-Protocol/ucp](https://github.com/Universal-Commerce-Protocol/ucp) |
+| **AP2** | Agent Payments Protocol — secure, verifiable payments initiated by agents (often used with A2A / MCP) | [ap2-protocol.org](https://ap2-protocol.org/) · [Google Cloud: Announcing AP2](https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol) · [GitHub: google-agentic-commerce/AP2](https://github.com/google-agentic-commerce/AP2) |
+| **A2A** | Agent2Agent — discovery, tasks, and messaging between agents without sharing internal state | [A2A specification](https://google.github.io/A2A/specification/) · [a2a-protocol.org](https://a2a-protocol.org/) · [GitHub: google/A2A](https://github.com/google/A2A) |
+
+### LLM stack used in this project
+
+| Component | Documentation |
+|-----------|----------------|
+| **LangChain** | [Python docs](https://python.langchain.com/docs/) |
+| **Vertex AI + Gemini** (remote) | [Vertex AI generative AI](https://cloud.google.com/vertex-ai/generative-ai/docs/overview) · [LangChain Google Vertex AI](https://python.langchain.com/docs/integrations/llms/google_vertex_ai_palm/) |
+| **Local GGUF** (llama-cpp) | [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) · [LangChain LlamaCpp](https://python.langchain.com/docs/integrations/llms/llamacpp/) |
+
 ## 🧪 Testing
 
 ```bash
