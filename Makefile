@@ -69,20 +69,20 @@ model-list: ## List available models in the catalog
 
 .PHONY: model-select
 model-select: ## Download a specific model (usage: make model-select MODEL=mistral-7b-instruct)
-	@if [ -z "$(MODEL)" ]; then \
-		echo "Usage: make model-select MODEL=<model-name>"; \
-		echo "Run 'make model-list' to see available models."; \
-	else \
-		$(PYTHON) scripts/downloadModel.py --model $(MODEL); \
-	fi
+ifndef MODEL
+	$(error Usage: make model-select MODEL=<model-name>. Run 'make model-list' to see available models.)
+endif
+	$(PYTHON) scripts/downloadModel.py --model "$(MODEL)"
 
 .PHONY: model-custom
 model-custom: ## Download a custom model (usage: make model-custom REPO=user/repo FILE=model.gguf)
-	@if [ -z "$(REPO)" ] || [ -z "$(FILE)" ]; then \
-		echo "Usage: make model-custom REPO=TheBloke/Model-GGUF FILE=model.Q4_K_M.gguf"; \
-	else \
-		$(PYTHON) scripts/downloadModel.py --repo $(REPO) --file $(FILE); \
-	fi
+ifndef REPO
+	$(error Usage: make model-custom REPO=TheBloke/Model-GGUF FILE=model.Q4_K_M.gguf)
+endif
+ifndef FILE
+	$(error Usage: make model-custom REPO=TheBloke/Model-GGUF FILE=model.Q4_K_M.gguf)
+endif
+	$(PYTHON) scripts/downloadModel.py --repo "$(REPO)" --file "$(FILE)"
 
 # ---- Test ------------------------------------------------------------------
 

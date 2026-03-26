@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 tmp/*
+models/*
 # Local LLM model files
 models/*.gguf
 models/*.bin
