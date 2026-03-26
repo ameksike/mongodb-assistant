@@ -4,6 +4,14 @@ Detailed documentation for the Conversational Assistance System.
 
 ---
 
+## Guides
+
+| Document | Description |
+|----------|-------------|
+| [localLlmRuntime.md](localLlmRuntime.md) | Local LLM deployment: **in-process** (`llama-cpp-python`) vs **external servers** (e.g. Ollama); how this relates to LangChain |
+
+---
+
 ## Architecture Overview
 
 The system follows a layered architecture with Dependency Injection (DI):

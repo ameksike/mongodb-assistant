@@ -139,7 +139,7 @@ tests/                 Unit and integration tests
 
 ## 📚 Documentation
 
-See [doc/README.md](doc/README.md) for detailed architecture and provider documentation.
+See [doc/README.md](doc/README.md) for detailed architecture and provider documentation. For **local LLM process layout** (in-process `llama-cpp-python` vs external servers like Ollama), see [doc/localLlmRuntime.md](doc/localLlmRuntime.md).
 
 ### Related standards (agentic commerce and agents)
 
@@ -156,7 +156,7 @@ These open protocols sit alongside conversational and commerce-oriented agent sy
 | Component | Documentation |
 |-----------|----------------|
 | **LangChain** | [Python docs](https://python.langchain.com/docs/) |
-| **Vertex AI + Gemini** (remote) | [Vertex AI generative AI](https://cloud.google.com/vertex-ai/generative-ai/docs/overview) · [LangChain Google Vertex AI](https://python.langchain.com/docs/integrations/llms/google_vertex_ai_palm/) |
+| **Vertex AI + Gemini** (remote) | [Vertex AI generative AI](https://cloud.google.com/vertex-ai/generative-ai/docs/overview) · [LangChain Google integrations](https://python.langchain.com/docs/integrations/providers/google/) · [`langchain-google-vertexai` reference](https://reference.langchain.com/python/langchain_google_vertexai/) |
 | **Local GGUF** (llama-cpp) | [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) · [LangChain LlamaCpp](https://python.langchain.com/docs/integrations/llms/llamacpp/) |
 
 ## 🧪 Testing
