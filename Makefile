@@ -6,10 +6,25 @@
 # ============================================================================
 
 .DEFAULT_GOAL := help
-PYTHON := python
-PIP := pip
-UVICORN := uvicorn
-PYTEST := pytest
+BASE_PYTHON := python
+VENV_DIR := venv
+ifeq ($(OS),Windows_NT)
+VENV_BIN := $(VENV_DIR)/Scripts
+VENV_PYTHON := $(VENV_BIN)/python.exe
+VENV_PIP := $(VENV_BIN)/pip.exe
+VENV_UVICORN := $(VENV_BIN)/uvicorn.exe
+VENV_PYTEST := $(VENV_BIN)/pytest.exe
+else
+VENV_BIN := $(VENV_DIR)/bin
+VENV_PYTHON := $(VENV_BIN)/python
+VENV_PIP := $(VENV_BIN)/pip
+VENV_UVICORN := $(VENV_BIN)/uvicorn
+VENV_PYTEST := $(VENV_BIN)/pytest
+endif
+PYTHON := $(VENV_PYTHON)
+PIP := $(VENV_PIP)
+UVICORN := $(VENV_UVICORN)
+PYTEST := $(VENV_PYTEST)
 APP_MODULE := src.main:app
 ENV_FILE := cfg/.env
 ENV_EXAMPLE := cfg/.env.example
@@ -17,11 +32,11 @@ ENV_EXAMPLE := cfg/.env.example
 # ---- Setup -----------------------------------------------------------------
 
 .PHONY: install
-install: ## Install all project dependencies
+install: venv ## Install all project dependencies in virtual environment
 	$(PIP) install -r requirements.txt
 
 .PHONY: install-dev
-install-dev: ## Install dependencies + dev tools (linting, formatting)
+install-dev: venv ## Install dependencies + dev tools (linting, formatting)
 	$(PIP) install -r requirements.txt
 	$(PIP) install ruff black
 
@@ -31,17 +46,12 @@ setup: install env ## Full project setup (install deps + create .env)
 
 .PHONY: env
 env: ## Create cfg/.env from example if it does not exist
-	@if [ ! -f $(ENV_FILE) ]; then \
-		cp $(ENV_EXAMPLE) $(ENV_FILE); \
-		echo "Created $(ENV_FILE) from $(ENV_EXAMPLE)"; \
-	else \
-		echo "$(ENV_FILE) already exists, skipping."; \
-	fi
+	@$(BASE_PYTHON) -c "from pathlib import Path; import shutil; env=Path(r'$(ENV_FILE)'); ex=Path(r'$(ENV_EXAMPLE)'); exists=env.exists(); (print(f'{env} already exists, skipping.') if exists else (shutil.copyfile(ex, env), print(f'Created {env} from {ex}')))"
 
 .PHONY: venv
 venv: ## Create a Python virtual environment
-	$(PYTHON) -m venv venv
-	@echo "Activate with: source venv/bin/activate"
+	$(BASE_PYTHON) -m venv $(VENV_DIR)
+	@echo "Virtual environment ready in $(VENV_DIR)"
 
 # ---- Run -------------------------------------------------------------------
 
@@ -61,18 +71,18 @@ health: ## Check if the server is running
 
 .PHONY: model-download
 model-download: ## Download the default local LLM model
-	$(PYTHON) scripts/downloadModel.py
+	$(BASE_PYTHON) scripts/downloadModel.py
 
 .PHONY: model-list
 model-list: ## List available models in the catalog
-	$(PYTHON) scripts/downloadModel.py --list
+	$(BASE_PYTHON) scripts/downloadModel.py --list
 
 .PHONY: model-select
 model-select: ## Download a specific model (usage: make model-select MODEL=mistral-7b-instruct)
 ifndef MODEL
 	$(error Usage: make model-select MODEL=<model-name>. Run 'make model-list' to see available models.)
 endif
-	$(PYTHON) scripts/downloadModel.py --model "$(MODEL)"
+	$(BASE_PYTHON) scripts/downloadModel.py --model "$(MODEL)"
 
 .PHONY: model-custom
 model-custom: ## Download a custom model (usage: make model-custom REPO=user/repo FILE=model.gguf)
@@ -82,7 +92,7 @@ endif
 ifndef FILE
 	$(error Usage: make model-custom REPO=TheBloke/Model-GGUF FILE=model.Q4_K_M.gguf)
 endif
-	$(PYTHON) scripts/downloadModel.py --repo "$(REPO)" --file "$(FILE)"
+	$(BASE_PYTHON) scripts/downloadModel.py --repo "$(REPO)" --file "$(FILE)"
 
 # ---- Test ------------------------------------------------------------------
 

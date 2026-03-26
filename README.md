@@ -13,22 +13,19 @@ A dynamic conversational assistance system built with **Python**, **FastAPI**, *
 - ✅ Pydantic request/response validation
 - 🏗️ Class-based OOP design throughout
 
-## 🚀 Quick Start
+## 🚀 Get Started (Simple)
+
+Use `make` to prepare everything and start the service:
 
 ```bash
-# Clone and setup
-git clone <repo-url>
-cd mongodb-assistant
-make venv
-source venv/bin/activate
 make setup
-
-# Download a local LLM model
-make model-download
-
-# Start the server
+make model-select MODEL=phi-2
 make dev
 ```
+
+Health check: [http://localhost:8000/health](http://localhost:8000/health)
+
+For the full manual setup (without `make`) and a detailed comparison of both paths, see [doc/setup.md](doc/setup.md).
 
 ## 📦 Available Commands
 
@@ -43,7 +40,7 @@ Run `make help` to see all commands:
 | `make test` | Run all tests |
 | `make check` | Run linter + tests |
 | `make model-download` | Download the default local LLM model |
-| `make model-list` | List available models in the catalog |
+| `make model-list` | Catalog + download status; files already in `models/` |
 | `make model-select MODEL=name` | Download a specific model from the catalog |
 | `make model-custom REPO=x FILE=y` | Download any GGUF model from Hugging Face |
 | `make lint` | Run linter (ruff) |
@@ -58,7 +55,7 @@ Run `make help` to see all commands:
 Models are managed through `cfg/models.json` (catalog) and downloaded via `scripts/downloadModel.py`.
 
 ```bash
-# List available models
+# Catalog, on-disk status, and files in models/
 make model-list
 
 # Download the default model (Mistral 7B Instruct Q4_K_M)

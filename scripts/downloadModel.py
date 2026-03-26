@@ -38,16 +38,52 @@ class ModelDownloader:
                 return json.load(f)
         return {"models": {}, "default": None}
 
+    def _downloadedModelFilenames(self) -> set[str]:
+        """Basenames of model files present under models/ (.gguf / .bin)."""
+        if not self.modelsDir.exists():
+            return set()
+        exts = {".gguf", ".bin"}
+        return {
+            p.name
+            for p in self.modelsDir.iterdir()
+            if p.is_file() and p.suffix.lower() in exts
+        }
+
+    def _formatFileSizeMb(self, path: Path) -> str:
+        mb = path.stat().st_size / (1024 * 1024)
+        return f"{mb:.0f} MB"
+
     def listModels(self):
-        """Print all available models from the catalog."""
-        print("\nAvailable models:\n")
+        """Print catalog models and files already present in models/."""
+        onDisk = self._downloadedModelFilenames()
         defaultName = self.catalog.get("default", "")
-        for name, info in self.catalog["models"].items():
-            marker = " (default)" if name == defaultName else ""
-            print(f"  {name}{marker}")
-            print(f"    {info['description']}")
-            print(f"    repo: {info['repo']}")
-            print(f"    file: {info['file']}")
+
+        print("\nCatalog (available to download):\n")
+        if not self.catalog.get("models"):
+            print("  (no entries in cfg/models.json)\n")
+        else:
+            for name, info in self.catalog["models"].items():
+                marker = " (default)" if name == defaultName else ""
+                fname = info["file"]
+                status = "downloaded" if fname in onDisk else "not on disk"
+                print(f"  {name}{marker}  [{status}]")
+                print(f"    {info['description']}")
+                print(f"    repo: {info['repo']}")
+                print(f"    file: {fname}")
+                if fname in onDisk:
+                    path = self.modelsDir / fname
+                    print(f"    local: models/{fname} ({self._formatFileSizeMb(path)})")
+                print()
+
+        print("On disk (models/):\n")
+        if not onDisk:
+            print("  (no .gguf or .bin files in models/)\n")
+        else:
+            catalogByFile = {info["file"]: n for n, info in self.catalog.get("models", {}).items()}
+            for fname in sorted(onDisk):
+                path = self.modelsDir / fname
+                catNote = f"  (catalog: {catalogByFile[fname]})" if fname in catalogByFile else "  (custom / not in catalog)"
+                print(f"  {fname}  ({self._formatFileSizeMb(path)}){catNote}")
             print()
 
     def getModelInfo(self, modelName: str) -> tuple:

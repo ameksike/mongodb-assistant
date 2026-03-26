@@ -4,10 +4,34 @@ Detailed documentation for the Conversational Assistance System.
 
 ---
 
+## 🚀 Get Started (Simple)
+
+1) Prepare the project:
+
+```bash
+make setup
+```
+
+2) Download one model and run the server:
+
+```bash
+make model-select MODEL=phi-2
+make dev
+```
+
+4) Verify the API:
+- `http://localhost:8000/health`
+- `http://localhost:8000/docs`
+
+Need manual setup without `make`? See [setup.md](setup.md).
+
+---
+
 ## Guides
 
 | Document | Description |
 |----------|-------------|
+| [setup.md](setup.md) | Complete setup guide: simple path with `make` and full manual path without `make` |
 | [localLlmRuntime.md](localLlmRuntime.md) | Local LLM deployment: **in-process** (`llama-cpp-python`) vs **external servers** (e.g. Ollama); how this relates to LangChain |
 
 ---
@@ -62,7 +86,7 @@ Models are managed through `cfg/models.json` (catalog) and `scripts/downloadMode
 **Automated download (recommended):**
 ```bash
 make model-download                # download default model
-make model-list                    # list available models
+make model-list                    # catalog + status; files already in models/
 make model-select MODEL=phi-2     # download a specific model
 ```
 
