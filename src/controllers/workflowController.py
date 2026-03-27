@@ -50,15 +50,16 @@ class WorkflowController:
             workflowContext = self.workflowService.loadWorkflow(request.workflowId)
             # Transforming objects to dictionaries for LLM processing, excluding None fields
             conversationDicts = [msg.model_dump(exclude_none=True) for msg in request.conversation]
-            stepId, answers = self.llmService.generateResponse({
+            stepId, answers, llmError = self.llmService.generateResponse({
                 "workflow": workflowContext,
                 "conversation": conversationDicts,
                 "maxAnswers": request.maxAnswers,
             })
             return ProcessResponse(
                 workflowId=request.workflowId,
-                stepId=stepId,
-                answers=answers,
+                stepId=stepId or "",
+                answers=list(answers or []),
+                error=llmError,
             )
         except FileNotFoundError:
             raise HTTPException(

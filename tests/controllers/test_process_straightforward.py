@@ -82,7 +82,7 @@ class TestProcessStraightforwardSupervisedSteps:
     ):
         self.mockWorkflowService.loadWorkflow.return_value = self.workflow_payload
         answers = ["Suggested reply A", "Suggested reply B"]
-        self.mockLlmService.generateResponse.return_value = (expected_step_id, answers)
+        self.mockLlmService.generateResponse.return_value = (expected_step_id, answers, None)
 
         payload = {
             "workflowId": "straightforward",
@@ -136,6 +136,7 @@ class TestProcessStraightforwardSlices:
         self.mockLlmService.generateResponse.return_value = (
             "shopping-agent-introduction",
             ["I'm looking for running shoes."],
+            None,
         )
         r = self.client.post(
             "/api/process",
@@ -161,6 +162,7 @@ class TestProcessStraightforwardSlices:
         self.mockLlmService.generateResponse.return_value = (
             "mandates-created",
             ["I'll take option 2.", "Option 2 please."],
+            None,
         )
         r = self.client.post(
             "/api/process",
@@ -185,6 +187,7 @@ class TestProcessStraightforwardSlices:
         self.mockLlmService.generateResponse.return_value = (
             "payment-completed",
             ["Thank you very much."],
+            None,
         )
         r = self.client.post(
             "/api/process",

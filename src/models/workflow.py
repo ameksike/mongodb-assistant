@@ -15,5 +15,6 @@ class ProcessRequest(BaseModel):
 
 class ProcessResponse(BaseModel):
     workflowId: str
-    stepId: str
-    answers: list[str]
+    stepId: str = ""
+    answers: list[str] = Field(default_factory=list)
+    error: str | None = None

@@ -28,7 +28,7 @@ LangChain provides **wrappers and chains**. It does not, by itself, define wheth
 
 - **`LlamaCpp`** (`langchain-community`): uses `llama-cpp-python` → typically **in-process** with a path to a `.gguf` file.
 - **`ChatOllama` / Ollama integrations**: talk to a **running Ollama daemon** → **external process**.
-- **`ChatVertexAI`**, OpenAI-compatible clients, etc.: **remote API** (cloud or another host).
+- **`ChatGoogleGenerativeAI`** (Gemini / Vertex), OpenAI-compatible clients, etc.: **remote API** (cloud or another host).
 
 So the question “must I run Ollama?” is really “which LangChain integration and which runtime did I configure?”
 
