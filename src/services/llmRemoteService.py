@@ -14,30 +14,39 @@ class LlmRemoteService(LlmService):
     defaultModel = "gemini-2.5-flash"
 
     def __init__(self):
-        model = os.getenv("GOOGLE_MODEL_ID", self.defaultModel)
-        project = os.getenv("GOOGLE_CLOUD_PROJECT")
-        location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+        self.modelId = os.getenv("GOOGLE_MODEL_ID", self.defaultModel)
+        self.project = os.getenv("GOOGLE_CLOUD_PROJECT")
+        self.location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 
-        if project:
+        if self.project:
             self.llm = ChatGoogleGenerativeAI(
-                model=model,
-                project=project,
-                location=location,
+                model=self.modelId,
+                project=self.project,
+                location=self.location,
             )
             logger.info(
                 "LlmRemoteService initialized with ChatGoogleGenerativeAI "
                 "(model=%s, project=%s, location=%s)",
-                model,
-                project,
-                location,
+                self.modelId,
+                self.project,
+                self.location,
             )
         else:
-            self.llm = ChatGoogleGenerativeAI(model=model)
+            self.llm = ChatGoogleGenerativeAI(model=self.modelId)
             logger.info(
                 "LlmRemoteService initialized with ChatGoogleGenerativeAI "
                 "(model=%s, developer API / env credentials)",
-                model,
+                self.modelId,
             )
+
+    def startupInfo(self) -> dict:
+        info = super().startupInfo()
+        info["provider"] = "REMOTE"
+        info["modelId"] = self.modelId
+        info["location"] = self.location
+        if self.project:
+            info["project"] = self.project
+        return info
 
     def _invokeLogMessage(self) -> str:
         return "Sending request to Google Generative AI (Gemini)"

@@ -207,6 +207,10 @@ class LlmService(ABC):
     ) -> tuple[str, list[str], str | None]:
         return parse_workflow_llm_response(text, maxAnswers)
 
+    def startupInfo(self) -> dict:
+        """Non-sensitive configuration summary; subclasses extend with provider details."""
+        return {"promptFormat": self._promptFormat()}
+
     @abstractmethod
     def _invokeLogMessage(self) -> str:
         """Log line when sending a prompt to the provider-specific model."""
