@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from collections.abc import Callable
 from typing import Any, Literal
 
@@ -8,6 +9,45 @@ logger = logging.getLogger(__name__)
 DEFAULT_LLM_PARSE_ERROR = (
     "The assistant could not produce a valid structured response. Please try again."
 )
+
+# Reject model output that looks like code / tests instead of short user replies (common with small LLMs).
+_MAX_STEP_ID_LEN = 96
+_MAX_ANSWER_LINE_LEN = 520
+_MAX_ANSWERS_COMBINED_LEN = 4000
+_STEP_ID_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]*$")
+_GARBAGE_MARKERS = (
+    "import json",
+    "import sys",
+    "__main__",
+    "pathlib",
+    "sys.path",
+    "unit test",
+    "workflow.json",
+    "extract_steps",
+    "get_active_step",
+    "logic_functions",
+    "```",
+    "\ndef ",
+    "\nclass ",
+)
+
+
+def _llm_json_payload_sanity_fail(step_id: str, answers: list[str]) -> bool:
+    """True if ``step_id`` / ``answers`` are implausible for this API (e.g. Python dump)."""
+    if len(step_id) > _MAX_STEP_ID_LEN or not _STEP_ID_PATTERN.fullmatch(step_id):
+        return True
+    combined = 0
+    for a in answers:
+        if len(a) > _MAX_ANSWER_LINE_LEN:
+            return True
+        combined += len(a)
+        lower = a.lower()
+        for needle in _GARBAGE_MARKERS:
+            if needle in lower or needle in a:
+                return True
+    if combined > _MAX_ANSWERS_COMBINED_LEN:
+        return True
+    return False
 
 
 class WorkflowPromptParts:
@@ -174,7 +214,14 @@ def parse_workflow_llm_response(
         )
         return "", [], DEFAULT_LLM_PARSE_ERROR
 
-    return step_id.strip(), str_answers, None
+    sid = step_id.strip()
+    if _llm_json_payload_sanity_fail(sid, str_answers):
+        logger.warning(
+            "LLM JSON failed sanity check (likely code or noise, not user replies)"
+        )
+        return "", [], DEFAULT_LLM_PARSE_ERROR
+
+    return sid, str_answers, None
 
 
 def coerceLlmContentToStr(content: Any) -> str:

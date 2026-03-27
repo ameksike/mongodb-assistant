@@ -41,5 +41,5 @@ class LlmRemoteService(LlmService):
                 model,
             )
 
-    def _invoke_log_message(self) -> str:
+    def _invokeLogMessage(self) -> str:
         return "Sending request to Google Generative AI (Gemini)"

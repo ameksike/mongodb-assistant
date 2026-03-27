@@ -34,6 +34,19 @@ So the question “must I run Ollama?” is really “which LangChain integratio
 
 ---
 
+## Prompt format: `text` vs `json`
+
+`LlmService` builds the workflow prompt using `LLM_PROMPT_FORMAT` in `cfg/.env`:
+
+| Value | Behaviour |
+|--------|------------|
+| `text` (default) | Prose sections: workflow description, goals, policies, steps (bullets), then conversation lines, then output rules. Often easier for smaller local models. |
+| `json` | One JSON document with `instruction`, `workflow` (description, goals, policies, steps), `conversation`, and `maxAnswers` (camelCase). Suited to models that follow structured context well (e.g. remote Gemini). |
+
+Both modes require the model to reply with a **single JSON object** (`stepId` + `answers`, or `error`). Parsing and sanity checks are unchanged.
+
+---
+
 ## In-Process Local Inference (No Separate Model Server)
 
 **How it works:** `llama-cpp-python` loads a shared library that implements `llama.cpp`. When you construct the LangChain `LlamaCpp` object with `model_path=...`, the model file is mapped/loaded into **your application process**. Predictions run when you invoke the chain or LLM; no extra HTTP hop to a local daemon is required for that stack.

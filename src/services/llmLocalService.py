@@ -19,13 +19,13 @@ class LlmLocalService(LlmService):
             model_path=modelPath,
             n_ctx=int(os.getenv("LOCAL_MODEL_N_CTX", "4096")),
             n_threads=int(os.getenv("LOCAL_MODEL_N_THREADS", "4")),
-            temperature=float(os.getenv("LOCAL_MODEL_TEMPERATURE", "0.7")),
+            temperature=float(os.getenv("LOCAL_MODEL_TEMPERATURE", "0.25")),
             verbose=False,
         )
         logger.info(f"LlmLocalService initialized with model: {modelPath}")
 
-    def _invoke_log_message(self) -> str:
+    def _invokeLogMessage(self) -> str:
         return "Sending request to local LLM"
 
-    def _wrap_prompt(self, core: str) -> str:
+    def _wrapPrompt(self, core: str) -> str:
         return f"[INST]{core}[/INST]"

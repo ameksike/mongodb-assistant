@@ -78,6 +78,23 @@ class TestParseWorkflowLlmResponse:
         )
         assert err == DEFAULT_LLM_PARSE_ERROR
 
+    def test_code_like_answers_rejected(self):
+        payload = (
+            '{"stepId": "shopping-agent-introduction", "answers": ['
+            '"import json\\n", "def foo(): pass"]}'
+        )
+        sid, ans, err = parse_workflow_llm_response(payload, 2)
+        assert sid == ""
+        assert ans == []
+        assert err == DEFAULT_LLM_PARSE_ERROR
+
+    def test_oversized_answer_rejected(self):
+        long = "x" * 600
+        sid, ans, err = parse_workflow_llm_response(
+            f'{{"stepId": "step1", "answers": ["{long}", "{long}"]}}', 2
+        )
+        assert err == DEFAULT_LLM_PARSE_ERROR
+
 
 class TestWorkflowPromptParts:
     def test_policy_items_prefers_policies_key(self):

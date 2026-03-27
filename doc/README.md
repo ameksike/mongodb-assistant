@@ -80,7 +80,7 @@ All components are class-based (OOP). Abstract interfaces define contracts; conc
 - **Class**: `LlmLocalService`
 - **Model**: `mistral-7b-instruct-v0.2.Q4_K_M.gguf` (quantized GGUF)
 - **Runtime**: `llama-cpp-python` + LangChain `LlamaCpp`
-- **Config**: `LLM_PROVIDER=LOCAL`, `LOCAL_MODEL_PATH`, `LOCAL_MODEL_N_CTX`, `LOCAL_MODEL_N_THREADS`, `LOCAL_MODEL_TEMPERATURE`
+- **Config**: `LLM_PROVIDER=LOCAL`, `LOCAL_MODEL_PATH`, `LOCAL_MODEL_N_CTX`, `LOCAL_MODEL_N_THREADS`, `LOCAL_MODEL_TEMPERATURE`, `LLM_PROMPT_FORMAT` (`text` default, or `json` to send workflow + conversation as structured JSON in the prompt)
 - **Storage**: Place the `.gguf` file in the `models/` directory
 
 ### Downloading Models
