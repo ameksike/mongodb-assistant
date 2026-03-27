@@ -28,9 +28,22 @@ LangChain provides **wrappers and chains**. It does not, by itself, define wheth
 
 - **`LlamaCpp`** (`langchain-community`): uses `llama-cpp-python` → typically **in-process** with a path to a `.gguf` file.
 - **`ChatOllama` / Ollama integrations**: talk to a **running Ollama daemon** → **external process**.
-- **`ChatVertexAI`**, OpenAI-compatible clients, etc.: **remote API** (cloud or another host).
+- **`ChatGoogleGenerativeAI`** (Gemini / Vertex), OpenAI-compatible clients, etc.: **remote API** (cloud or another host).
 
 So the question “must I run Ollama?” is really “which LangChain integration and which runtime did I configure?”
+
+---
+
+## Prompt format: `text` vs `json`
+
+`LlmService` builds the workflow prompt using `LLM_PROMPT_FORMAT` in `cfg/.env`:
+
+| Value | Behaviour |
+|--------|------------|
+| `text` (default) | Prose sections: workflow description, goals, policies, steps (bullets), then conversation lines, then output rules. Often easier for smaller local models. |
+| `json` | One JSON document with `instruction`, `workflow` (description, goals, policies, steps), `conversation`, and `maxAnswers` (camelCase). Suited to models that follow structured context well (e.g. remote Gemini). |
+
+Both modes require the model to reply with a **single JSON object** (`stepId` + `answers`, or `error`). Parsing and sanity checks are unchanged.
 
 ---
 

@@ -22,8 +22,8 @@ make dev
 (`make run:dev` is the same as `make dev`. On **Windows CMD**, run these from the repo root with GNU Make on your `PATH`; see [setup.md](setup.md) for `cmd.exe` examples.)
 
 3) Verify the API:
-- `http://localhost:8000/health`
-- `http://localhost:8000/docs`
+- `http://localhost:3333/health`
+- `http://localhost:3333/docs`
 
 Need manual setup without `make`? See [setup.md](setup.md).
 
@@ -35,6 +35,8 @@ Need manual setup without `make`? See [setup.md](setup.md).
 |----------|-------------|
 | [setup.md](setup.md) | Complete setup guide: simple path with `make` and full manual path without `make` |
 | [llm.md](llm.md) | Local LLM deployment: **in-process** (`llama-cpp-python`) vs **external servers** (e.g. Ollama); how this relates to LangChain |
+| [manual-postman-curl.md](manual-postman-curl.md) | Manual tests: **curl** and Postman for `/health` and `/api/process`, with JSON examples under [requests/](requests/) |
+| [code-quality.md](code-quality.md) | **Ruff**: lint, format, `pyproject.toml`, and Make targets (`quality:lint`, `quality:format`, `quality:check`) |
 
 ---
 
@@ -66,19 +68,19 @@ All components are class-based (OOP). Abstract interfaces define contracts; conc
 
 ## LLM Providers
 
-### Vertex AI (REMOTE)
+### Google Generative AI / Vertex (REMOTE)
 
 - **Class**: `LlmRemoteService`
-- **Model**: Gemini 2.5 Flash via `langchain-google-vertexai`
-- **Config**: `LLM_PROVIDER=REMOTE`, `GCP_PROJECT_ID`, `GCP_LOCATION`
-- **Auth**: Google Cloud Application Default Credentials (ADC)
+- **Model**: `ChatGoogleGenerativeAI` from `langchain-google-genai` (default model `gemini-2.5-flash`, overridable with `GEMINI_MODEL`)
+- **Config**: `LLM_PROVIDER=REMOTE`. With `GCP_PROJECT_ID` or `GOOGLE_CLOUD_PROJECT`: Vertex + `GCP_LOCATION` / `GOOGLE_CLOUD_LOCATION`. Without project: developer API using `GOOGLE_API_KEY` or `GEMINI_API_KEY` (see LangChain docs).
+- **Auth**: ADC for Vertex; API key env vars for developer API
 
 ### Local Model (LOCAL)
 
 - **Class**: `LlmLocalService`
 - **Model**: `mistral-7b-instruct-v0.2.Q4_K_M.gguf` (quantized GGUF)
 - **Runtime**: `llama-cpp-python` + LangChain `LlamaCpp`
-- **Config**: `LLM_PROVIDER=LOCAL`, `LOCAL_MODEL_PATH`, `LOCAL_MODEL_N_CTX`, `LOCAL_MODEL_N_THREADS`, `LOCAL_MODEL_TEMPERATURE`
+- **Config**: `LLM_PROVIDER=LOCAL`, `LLM_LOCAL_MODEL_PATH`, `LLM_LOCAL_MODEL_N_CTX`, `LLM_LOCAL_MODEL_N_THREADS`, `LLM_LOCAL_MODEL_TEMPERATURE`, `LLM_PROMPT_FORMAT` (`text` default, or `json` to send workflow + conversation as structured JSON in the prompt)
 - **Storage**: Place the `.gguf` file in the `models/` directory
 
 ### Downloading Models
@@ -100,7 +102,7 @@ Optional: `make model:select modelName=phi-2 forceDownload=1` to re-download. Se
 1. Download from Hugging Face (e.g. `https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF`)
 2. Choose the `Q4_K_M` quantization for best balance of quality and performance.
 3. Place the file in `models/` directory.
-4. Update `LOCAL_MODEL_PATH` in `cfg/.env`.
+4. Update `LLM_LOCAL_MODEL_PATH` in `cfg/.env`.
 
 **Custom model from any Hugging Face repo:**
 ```bash

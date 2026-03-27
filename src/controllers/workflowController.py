@@ -1,12 +1,14 @@
 import logging
+
 from fastapi import APIRouter, HTTPException
+
 from src.models.workflow import (
     ProcessRequest,
     ProcessResponse,
 )
-from src.services.workflowService import WorkflowService
 from src.services.llmService import LlmService
 from src.services.serviceFactory import ServiceFactory
+from src.services.workflowService import WorkflowService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -48,27 +50,32 @@ class WorkflowController:
         logger.info(f"Processing workflow: {request.workflowId}")
         try:
             workflowContext = self.workflowService.loadWorkflow(request.workflowId)
-            conversationDicts = [msg.model_dump(exclude_none=True) for msg in request.conversation]
-            stepId, answers = self.llmService.generateResponse({
-                "workflow": workflowContext,
-                "conversation": conversationDicts,
-                "maxAnswers": request.maxAnswers,
-            })
+            # Transforming objects to dictionaries for LLM processing, excluding None fields
+            conversationDicts = [
+                msg.model_dump(exclude_none=True) for msg in request.conversation
+            ]
+            stepId, answers, llmError = self.llmService.generateResponse(
+                {
+                    "workflow": workflowContext,
+                    "conversation": conversationDicts,
+                    "maxAnswers": request.maxAnswers,
+                }
+            )
             return ProcessResponse(
                 workflowId=request.workflowId,
-                stepId=stepId,
-                answers=answers,
+                stepId=stepId or "",
+                answers=list(answers or []),
+                error=llmError,
             )
         except FileNotFoundError:
             raise HTTPException(
-                status_code=404,
-                detail=f"Workflow '{request.workflowId}' not found"
-            )
+                status_code=404, detail=f"Workflow '{request.workflowId}' not found"
+            ) from None
         except ValueError as e:
-            raise HTTPException(status_code=422, detail=str(e))
+            raise HTTPException(status_code=422, detail=str(e)) from e
         except Exception as e:
             logger.error(f"Error processing workflow: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 controller = WorkflowController()

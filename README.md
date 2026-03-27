@@ -25,7 +25,9 @@ make model:select modelName=phi-2
 make dev
 ```
 
-Then open [http://localhost:8000/health](http://localhost:8000/health) or [http://localhost:8000/docs](http://localhost:8000/docs).
+Then open [http://localhost:3333/health](http://localhost:3333/health) or [http://localhost:3333/docs](http://localhost:3333/docs).
+
+The API port defaults to **3333** in the `Makefile` (`APP_PORT`) to avoid Windows reserved ranges (port 8000 often triggers `WinError 10013`). Override: `make run:dev APP_PORT=8080`.
 
 For full manual setup (without `make`), see [doc/setup.md](doc/setup.md).
 
@@ -42,14 +44,18 @@ Optional:
 
 ```bash
 make test-cov     # same as make test:cov — coverage report
-make check        # linter (ruff) + tests (quality:check)
+make check        # ruff lint + format check + tests (quality:check)
 ```
 
 Without `make` (from the project root, with the virtualenv active):
 
 ```bash
 pytest tests/ -v
+python -m ruff check src tests
+python -m ruff format --check src tests
 ```
+
+Details: [doc/code-quality.md](doc/code-quality.md).
 
 Run `make help` for grouped targets (`project:setup`, `model:list`, `run:dev`, `test:run`, …).
 
@@ -90,9 +96,9 @@ Main targets use **`namespace:action`** (GNU Make escapes these as `model\:downl
 | `make project:info` | Print env, models on disk, Python version |
 | `make project:clean` | Remove `__pycache__`, `.pytest_cache`, `*.pyc` |
 | `make deps:install` | Install dependencies into `venv/` |
-| `make run:dev` | API dev server (reload) |
-| `make run:start` | API production mode |
-| `make run:health` | `GET /health` (needs `curl`) |
+| `make run:dev` | API dev server (reload); default port **3333** (`APP_PORT` in Makefile) |
+| `make run:start` | API production mode; same port variable |
+| `make run:health` | `GET /health` on the same port as `run:dev` (needs `curl`) |
 | `make model:download` | Download default catalog model (skips if file exists) |
 | `make model:list` | Catalog + on-disk status |
 | `make model:select modelName=phi-2` | Download one catalog model |
@@ -103,8 +109,10 @@ Main targets use **`namespace:action`** (GNU Make escapes these as `model\:downl
 | `make model:clean` | Delete all `.gguf` / `.bin` under `models/` |
 | `make test:run` | Pytest |
 | `make test:cov` | Pytest + coverage |
-| `make quality:lint` / `quality:format` | Ruff / Black |
-| `make quality:check` | Lint + tests |
+| `make quality:lint` | Ruff static analysis (`ruff check`) |
+| `make quality:format` | Ruff formatter (`ruff format`) |
+| `make quality:formatCheck` | Fail if sources are not formatted |
+| `make quality:check` | Lint + format check + tests |
 | `make help` | Short list of groups and examples |
 
 **Aliases (short names):** `setup`, `install`, `dev`, `start`, `test`, `test-cov`, `check`, `lint`, `format`, `clean`, `health`, `clean-models` (same as `model:clean`).
@@ -123,7 +131,7 @@ make model:clean
 python bin/download.py --force --model phi-2   # re-download from CLI
 ```
 
-If the file is already in `models/`, download **skips** the network (set `forceDownload=1` on `model:select` or `--force` on the script). The script updates `cfg/.env` `LOCAL_MODEL_PATH` when a download completes or when a skip still selects that catalog file.
+If the file is already in `models/`, download **skips** the network (set `forceDownload=1` on `model:select` or `--force` on the script). The script updates `cfg/.env` `LLM_LOCAL_MODEL_PATH` when a download completes or when a skip still selects that catalog file.
 
 ## 🔗 API
 
@@ -168,8 +176,10 @@ All settings are loaded from `cfg/.env`:
 | `WORKFLOW_PROVIDER` | `JSON` | Workflow source: `JSON` or `MDB` |
 | `WORKFLOW_DIR` | `cfg/workflows` | Directory for JSON workflow files |
 | `LLM_PROVIDER` | `LOCAL` | LLM provider: `LOCAL` or `REMOTE` |
-| `LOCAL_MODEL_PATH` | `models/mistral-7b-instruct-v0.2.Q4_K_M.gguf` | Path to local GGUF model |
-| `GCP_PROJECT_ID` | - | Google Cloud project (for REMOTE LLM) |
+| `LLM_LOCAL_MODEL_PATH` | `models/mistral-7b-instruct-v0.2.Q4_K_M.gguf` | Path to local GGUF model |
+| `GCP_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT` | - | Google Cloud project for REMOTE LLM (Vertex); omit to use API key |
+| `GCP_LOCATION` / `GOOGLE_CLOUD_LOCATION` | `us-central1` | Region for Vertex |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model id for REMOTE |
 | `MDB_URI` | - | MongoDB connection URI (for MDB workflows) |
 
 ## 📁 Project Structure
@@ -209,7 +219,7 @@ These open protocols sit alongside conversational and commerce-oriented agent sy
 | Component | Documentation |
 |-----------|----------------|
 | **LangChain** | [Python docs](https://python.langchain.com/docs/) |
-| **Vertex AI + Gemini** (remote) | [Vertex AI generative AI](https://cloud.google.com/vertex-ai/generative-ai/docs/overview) · [LangChain Google integrations](https://python.langchain.com/docs/integrations/providers/google/) · [`langchain-google-vertexai` reference](https://reference.langchain.com/python/langchain_google_vertexai/) |
+| **Gemini** (remote) | [Vertex AI generative AI](https://cloud.google.com/vertex-ai/generative-ai/docs/overview) · [LangChain `ChatGoogleGenerativeAI`](https://reference.langchain.com/python/integrations/langchain_google_genai/ChatGoogleGenerativeAI/) |
 | **Local GGUF** (llama-cpp) | [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) · [LangChain LlamaCpp](https://python.langchain.com/docs/integrations/llms/llamacpp/) |
 
 ## 📄 License

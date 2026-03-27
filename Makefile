@@ -26,6 +26,7 @@ PIP := $(VENV_PIP)
 UVICORN := $(VENV_UVICORN)
 PYTEST := $(VENV_PYTEST)
 APP_MODULE := src.main:app
+APP_PORT := 3333
 ENV_FILE := cfg/.env
 ENV_EXAMPLE := cfg/.env.example
 
@@ -41,9 +42,8 @@ deps\:install: deps\:venv ## Install dependencies into venv
 	$(PIP) install -r requirements.txt
 
 .PHONY: deps\:installDev
-deps\:installDev: deps\:venv ## Install dependencies + ruff and black
-	$(PIP) install -r requirements.txt
-	$(PIP) install ruff black
+deps\:installDev: deps\:install ## Same as deps:install (pytest and ruff are in requirements.txt)
+	@echo "Dev tooling is listed in requirements.txt (no extra pip step)."
 
 # ---- Project --------------------------------------------------------------
 
@@ -74,16 +74,16 @@ project\:clean: ## Remove __pycache__, .pytest_cache, and *.pyc under project
 # ---- Run ------------------------------------------------------------------
 
 .PHONY: run\:dev
-run\:dev: ## Start API in development mode (auto-reload)
-	$(UVICORN) $(APP_MODULE) --reload --host 0.0.0.0 --port 8000
+run\:dev: ## Start API in development mode (auto-reload); port from APP_PORT (default 3333)
+	$(UVICORN) $(APP_MODULE) --reload --host 0.0.0.0 --port $(APP_PORT)
 
 .PHONY: run\:start
-run\:start: ## Start API in production mode
-	$(UVICORN) $(APP_MODULE) --host 0.0.0.0 --port 8000
+run\:start: ## Start API in production mode; port from APP_PORT (default 3333)
+	$(UVICORN) $(APP_MODULE) --host 0.0.0.0 --port $(APP_PORT)
 
 .PHONY: run\:health
-run\:health: ## Check GET /health (requires curl)
-	@curl -s http://localhost:8000/health | $(PYTHON) -m json.tool 2>/dev/null || echo "Server is not running."
+run\:health: ## Check GET /health (requires curl); port from APP_PORT
+	@curl -s http://localhost:$(APP_PORT)/health | $(PYTHON) -m json.tool 2>/dev/null || echo "Server is not running."
 
 # ---- Models ---------------------------------------------------------------
 
@@ -145,15 +145,19 @@ test\:watch: ## Run tests in watch mode (requires pytest-watch)
 # ---- Quality ----------------------------------------------------------------
 
 .PHONY: quality\:lint
-quality\:lint: ## Run ruff on src/ and tests/
-	ruff check src/ tests/
+quality\:lint: ## Static analysis: ruff check on src/ and tests/
+	$(PYTHON) -m ruff check src/ tests/
 
 .PHONY: quality\:format
-quality\:format: ## Format with black
-	black src/ tests/
+quality\:format: ## Auto-format with ruff format
+	$(PYTHON) -m ruff format src/ tests/
+
+.PHONY: quality\:formatCheck
+quality\:formatCheck: ## Fail if code is not formatted (CI-friendly)
+	$(PYTHON) -m ruff format --check src/ tests/
 
 .PHONY: quality\:check
-quality\:check: quality\:lint test\:run ## Lint + tests
+quality\:check: quality\:lint quality\:formatCheck test\:run ## Lint + format check + tests
 
 # ---- Help & aliases ---------------------------------------------------------
 
@@ -166,7 +170,7 @@ help: ## Show main targets (type colons as shown; GNU Make uses model\:name in t
 	@echo "  make model:custom huggingfaceRepo=TheBloke/phi-2-GGUF fileName=phi-2.Q4_K_M.gguf"
 	@echo "  make model:remove modelName=phi-2   OR   make model:remove fileName=foo.gguf"
 	@echo "  make model:clean"
-	@echo "  make run:dev"
+	@echo "  make run:dev    (default port $(APP_PORT); override: make run:dev APP_PORT=8080)"
 	@echo "  make test:run"
 	@echo ""
 	@echo "Groups:  deps:venv deps:install deps:installDev"
@@ -174,7 +178,7 @@ help: ## Show main targets (type colons as shown; GNU Make uses model\:name in t
 	@echo "         run:dev run:start run:health"
 	@echo "         model:download model:list model:select model:custom model:remove model:clean"
 	@echo "         test:run test:cov test:watch"
-	@echo "         quality:lint quality:format quality:check"
+	@echo "         quality:lint quality:format quality:formatCheck quality:check"
 	@echo ""
 	@echo "Aliases: setup install dev start test check lint format clean health"
 	@echo ""
