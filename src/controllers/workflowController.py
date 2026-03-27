@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from src.models.workflow import (
     ProcessRequest,
     ProcessResponse,
+    WorkflowSummary,
 )
 from src.services.llmService import LlmService
 from src.services.serviceFactory import ServiceFactory
@@ -78,7 +79,21 @@ class WorkflowController:
             raise HTTPException(status_code=500, detail=str(e)) from e
 
 
+    async def listWorkflows(self) -> list[WorkflowSummary]:
+        try:
+            items = self.workflowService.listWorkflows()
+            return [WorkflowSummary(**item) for item in items]
+        except Exception as e:
+            logger.error("Error listing workflows: %s", e)
+            raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 controller = WorkflowController()
+
+
+@router.get("/api/workflows", response_model=list[WorkflowSummary])
+async def listWorkflows():
+    return await controller.listWorkflows()
 
 
 @router.post("/api/process", response_model=ProcessResponse)

@@ -121,6 +121,24 @@ class TestWorkflowController:
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
 
+    def test_listWorkflowsReturnsArray(self):
+        self.mockWorkflowService.listWorkflows.return_value = [
+            {"workflowId": "wf-a", "description": "First."},
+            {"workflowId": "wf-b", "description": "Second."},
+        ]
+        response = self.client.get("/api/workflows")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        assert data[0]["workflowId"] == "wf-a"
+        assert data[1]["description"] == "Second."
+
+    def test_listWorkflowsEmptyCollection(self):
+        self.mockWorkflowService.listWorkflows.return_value = []
+        response = self.client.get("/api/workflows")
+        assert response.status_code == 200
+        assert response.json() == []
+
     def test_rootRedirectsToDocs(self):
         response = self.client.get("/", follow_redirects=False)
         assert response.status_code == 307

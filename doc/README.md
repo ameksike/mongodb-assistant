@@ -35,7 +35,7 @@ Need manual setup without `make`? See [setup.md](setup.md).
 |----------|-------------|
 | [setup.md](setup.md) | Complete setup guide: simple path with `make` and full manual path without `make` |
 | [llm.md](llm.md) | Local LLM deployment: **in-process** (`llama-cpp-python`) vs **external servers** (e.g. Ollama); how this relates to LangChain |
-| [manual-postman-curl.md](manual-postman-curl.md) | Manual tests: **curl** and Postman for `/health` and `/api/process`, with JSON examples under [requests/](requests/) |
+| [manual-postman-curl.md](manual-postman-curl.md) | Manual tests: **curl** and Postman for `/health`, `/api/workflows`, and `/api/process`, with JSON examples under [requests/](requests/) |
 | [code-quality.md](code-quality.md) | **Ruff**: lint, format, `pyproject.toml`, and Make targets (`quality:lint`, `quality:format`, `quality:check`) |
 
 ---
@@ -65,6 +65,7 @@ All components are class-based (OOP). Abstract interfaces define contracts; conc
 - **Source**: MongoDB collection
 - **Config**: `WORKFLOW_PROVIDER=MDB`, `MDB_URI`, `MDB_DATABASE_NAME`, `MDB_COLLECTION_NAME`
 - **Usage**: Documents must have a `workflowId` field matching the requested ID.
+- **Import**: `make workflow:import` upserts `cfg/workflows/*.json` into MongoDB (`bin/import_workflows.py`). Use `make workflow:importDryRun` to preview.
 
 ## LLM Providers
 
@@ -111,15 +112,25 @@ make model:custom huggingfaceRepo=TheBloke/Model-GGUF fileName=model.Q4_K_M.gguf
 
 The download script automatically updates `cfg/.env` with the correct model path.
 
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/workflows` | List all available workflows (summaries: `workflowId` + `description`) |
+| `POST` | `/api/process` | Analyse conversation against a workflow; returns `stepId` + suggested user replies |
+| `GET` | `/health` | Health check |
+| `GET` | `/` | Redirects to `/docs` (Swagger UI) |
+
 ## Workflow JSON Schema
 
 Each workflow file must follow this structure:
 
 ```json
 {
+  "workflowId": "string",
   "description": "string",
   "goals": ["string"],
-  "policy": ["string"],
+  "policies": ["string"],
   "steps": [
     { "id": "string", "description": "string" }
   ]

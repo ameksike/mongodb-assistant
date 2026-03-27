@@ -107,6 +107,9 @@ Main targets use **`namespace:action`** (GNU Make escapes these as `model\:downl
 | `make model:remove modelName=phi-2` | Remove catalog model file from `models/` |
 | `make model:remove fileName=foo.gguf` | Remove a file by basename |
 | `make model:clean` | Delete all `.gguf` / `.bin` under `models/` |
+| `make workflow:import` | Import `cfg/workflows/*.json` into MongoDB (uses `MDB_*` from `cfg/.env`) |
+| `make workflow:importDryRun` | Show which workflows would be imported (no DB write) |
+| `make workflow:list` | `GET /api/workflows` on the running server |
 | `make test:run` | Pytest |
 | `make test:cov` | Pytest + coverage |
 | `make quality:lint` | Ruff static analysis (`ruff check`) |
@@ -116,6 +119,18 @@ Main targets use **`namespace:action`** (GNU Make escapes these as `model\:downl
 | `make help` | Short list of groups and examples |
 
 **Aliases (short names):** `setup`, `install`, `dev`, `start`, `test`, `test-cov`, `check`, `lint`, `format`, `clean`, `health`, `clean-models` (same as `model:clean`).
+
+### Workflow import (MongoDB)
+
+When `WORKFLOW_PROVIDER=MDB`, import local JSON files into MongoDB:
+
+```bash
+make workflow:importDryRun   # preview
+make workflow:import         # upsert into MongoDB (re-runnable)
+make workflow:list           # verify via GET /api/workflows (server must be running)
+```
+
+The import script (`bin/import_workflows.py`) reads `MDB_URI`, `MDB_DATABASE_NAME`, and `MDB_COLLECTION_NAME` from `cfg/.env` and upserts each file by `workflowId`.
 
 ## 🧠 Model Management
 
@@ -135,9 +150,21 @@ If the file is already in `models/`, download **skips** the network (set `forceD
 
 ## 🔗 API
 
+### `GET /api/workflows`
+
+List all available workflows (lightweight summaries based on `WORKFLOW_PROVIDER`).
+
+**Response:**
+```json
+[
+  { "workflowId": "straightforward", "description": "This workflow defines a guided purchase interaction..." },
+  { "workflowId": "happy_path", "description": "..." }
+]
+```
+
 ### `POST /api/process`
 
-Send a workflow ID and conversation history to get the current step and suggested responses.
+Send a workflow ID and conversation history to get the current step and suggested user responses.
 
 **Request:**
 ```json
@@ -181,6 +208,9 @@ All settings are loaded from `cfg/.env`:
 | `GOOGLE_CLOUD_LOCATION` | `us-central1` | Region for Vertex |
 | `GOOGLE_MODEL_ID` | `gemini-2.5-flash` | Gemini model id for REMOTE |
 | `MDB_URI` | - | MongoDB connection URI (for MDB workflows) |
+| `MDB_DATABASE_NAME` | - | MongoDB database name |
+| `MDB_COLLECTION_NAME` | - | MongoDB collection name |
+| `LLM_PROMPT_FORMAT` | `text` | Prompt packaging: `text` or `json` |
 
 ## 📁 Project Structure
 
@@ -192,7 +222,7 @@ cfg/
 doc/                   Detailed documentation
 iac/                   Infrastructure files (Docker/K8s)
 models/                Local LLM model files (.gguf)
-bin/                   Model download CLI (`download.py`)
+bin/                   CLI scripts (download.py, import_workflows.py)
 src/controllers/       FastAPI REST API layer
 src/models/            Pydantic API schemas
 src/services/          Business logic (abstract + concrete)
