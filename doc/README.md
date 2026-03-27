@@ -19,7 +19,9 @@ make model:select modelName=phi-2
 make dev
 ```
 
-4) Verify the API:
+(`make run:dev` is the same as `make dev`. On **Windows CMD**, run these from the repo root with GNU Make on your `PATH`; see [setup.md](setup.md) for `cmd.exe` examples.)
+
+3) Verify the API:
 - `http://localhost:8000/health`
 - `http://localhost:8000/docs`
 
@@ -81,16 +83,18 @@ All components are class-based (OOP). Abstract interfaces define contracts; conc
 
 ### Downloading Models
 
-Models are managed through `cfg/models.json` (catalog) and `bin/download.py`.
+Models are managed through `cfg/models.json` (catalog), **`bin/download.py`** (CLI), and **`ModelDownloadService`** in `src/services/modelDownloadService.py`.
 
-**Automated download (recommended):**
+**Automated download with Make (bash or CMD):**
 ```bash
 make model:download
 make model:list
 make model:select modelName=phi-2
-make model:remove modelName=phi-2    # remove catalog file from models/
-make model:clean                    # remove all .gguf / .bin in models/
+make model:remove modelName=phi-2
+make model:clean
 ```
+
+Optional: `make model:select modelName=phi-2 forceDownload=1` to re-download. See [setup.md](setup.md) for **Windows CMD** one-liners and quoting tips.
 
 **Manual download:**
 1. Download from Hugging Face (e.g. `https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF`)

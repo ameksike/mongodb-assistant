@@ -53,6 +53,30 @@ pytest tests/ -v
 
 Run `make help` for grouped targets (`project:setup`, `model:list`, `run:dev`, `test:run`, …).
 
+### 💠 CMD and Make
+
+Use the **project root** (folder that contains the `Makefile`) as the current directory. Install **GNU Make** so `make` is on your `PATH` (for example: [Chocolatey](https://chocolatey.org/) `choco install make`, a Git for Windows environment that includes `make`, or MSYS2/MinGW).
+
+Example from **Command Prompt**:
+
+```bat
+cd /d C:\path\to\mongodb-assistant
+make setup
+make model:select modelName=phi-2
+make run:dev
+```
+
+**Rules that avoid surprises:**
+
+| Topic | Detail |
+|--------|--------|
+| Target syntax | Type the colon as shown: `model:download`, `run:dev`, `test:run` (no backslash before `:` on the command line). |
+| Variables | GNU Make variables are **camelCase** and attached with **no spaces**: `modelName=phi-2`, `huggingfaceRepo=TheBloke/Model-GGUF`, `fileName=model.Q4_K_M.gguf`, optional `forceDownload=1`. |
+| Several variables | Put them on one line after the target: `make model:custom huggingfaceRepo=user/repo fileName=file.gguf` |
+| `make` not installed | Use [Option B in doc/setup.md](doc/setup.md) (Python and `python bin\download.py` / `venv\Scripts\python.exe -m uvicorn ...`). |
+
+`bin\download.py` is the same entry point the Makefile uses; it delegates to `src/services/modelDownloadService.py`. Full step-by-step for CMD and PowerShell is in [doc/setup.md](doc/setup.md).
+
 ---
 
 ## 📦 Available Commands
