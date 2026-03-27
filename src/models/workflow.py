@@ -18,3 +18,8 @@ class ProcessResponse(BaseModel):
     stepId: str = ""
     answers: list[str] = Field(default_factory=list)
     error: str | None = None
+
+
+class WorkflowSummary(BaseModel):
+    workflowId: str
+    description: str = ""

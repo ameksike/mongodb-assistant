@@ -128,6 +128,20 @@ endif
 model\:clean: ## Delete all .gguf and .bin files under models/
 	$(BASE_PYTHON) bin/download.py --clean
 
+# ---- Workflows --------------------------------------------------------------
+
+.PHONY: workflow\:import
+workflow\:import: ## Import cfg/workflows/*.json into MongoDB (uses MDB_* from cfg/.env)
+	$(PYTHON) bin/import_workflows.py
+
+.PHONY: workflow\:importDryRun
+workflow\:importDryRun: ## Show which workflows would be imported (no DB write)
+	$(PYTHON) bin/import_workflows.py --dry-run
+
+.PHONY: workflow\:list
+workflow\:list: ## List workflows via GET /api/workflows (requires running server)
+	@curl -s http://localhost:$(APP_PORT)/api/workflows | $(PYTHON) -m json.tool 2>/dev/null || echo "Server is not running."
+
 # ---- Test ------------------------------------------------------------------
 
 .PHONY: test\:run
@@ -177,6 +191,7 @@ help: ## Show main targets (type colons as shown; GNU Make uses model\:name in t
 	@echo "         project:setup project:env project:info project:clean"
 	@echo "         run:dev run:start run:health"
 	@echo "         model:download model:list model:select model:custom model:remove model:clean"
+	@echo "         workflow:import workflow:importDryRun workflow:list"
 	@echo "         test:run test:cov test:watch"
 	@echo "         quality:lint quality:format quality:formatCheck quality:check"
 	@echo ""

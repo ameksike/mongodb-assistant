@@ -18,9 +18,23 @@ class WorkflowMdbService(WorkflowService):
         logger.info("WorkflowMdbService initialized with MongoDB connection")
 
     def loadWorkflow(self, workflowId: str) -> dict:
-        logger.info(f"Loading workflow from MongoDB: {workflowId}")
+        logger.info("Loading workflow from MongoDB: %s", workflowId)
         workflow = self.collection.find_one({"workflowId": workflowId})
         if workflow is None:
             raise FileNotFoundError(f"Workflow '{workflowId}' not found in MongoDB")
         workflow.pop("_id", None)
         return workflow
+
+    def listWorkflows(self) -> list[dict]:
+        logger.info("Listing workflows from MongoDB: %s", self.collection.name)
+        cursor = self.collection.find(
+            {},
+            {"_id": 0, "workflowId": 1, "description": 1},
+        ).sort("workflowId", 1)
+        return [
+            {
+                "workflowId": doc.get("workflowId", ""),
+                "description": doc.get("description", ""),
+            }
+            for doc in cursor
+        ]

@@ -28,6 +28,35 @@ Expected response:
 
 ---
 
+## List workflows (GET `/api/workflows`)
+
+Returns all available workflows as lightweight summaries (`workflowId` + `description`). The source depends on `WORKFLOW_PROVIDER` (`JSON` files or MongoDB).
+
+**curl:**
+
+```bash
+curl -sS "http://localhost:3333/api/workflows"
+```
+
+**PowerShell:**
+
+```powershell
+curl.exe -sS "http://localhost:3333/api/workflows"
+```
+
+Expected response:
+
+```json
+[
+  { "workflowId": "happy_path", "description": "..." },
+  { "workflowId": "straightforward", "description": "This workflow defines a guided purchase interaction..." }
+]
+```
+
+Also available via Make: `make workflow:list`.
+
+---
+
 ## Process workflow (POST `/api/process`)
 
 | Field | Type | Notes |
