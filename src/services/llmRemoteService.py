@@ -7,39 +7,46 @@ from src.services.llmService import LlmService
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_MODEL = "gemini-2.5-flash"
-
 
 class LlmRemoteService(LlmService):
     """REMOTE provider: Gemini via LangChain ``ChatGoogleGenerativeAI`` (Vertex or API key)."""
 
-    def __init__(self):
-        model = os.getenv("GEMINI_MODEL", _DEFAULT_MODEL)
-        project = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
-        location = os.getenv("GCP_LOCATION") or os.getenv(
-            "GOOGLE_CLOUD_LOCATION", "us-central1"
-        )
+    defaultModel = "gemini-2.5-flash"
 
-        if project:
+    def __init__(self):
+        self.modelId = os.getenv("GOOGLE_MODEL_ID", self.defaultModel)
+        self.project = os.getenv("GOOGLE_CLOUD_PROJECT")
+        self.location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+
+        if self.project:
             self.llm = ChatGoogleGenerativeAI(
-                model=model,
-                project=project,
-                location=location,
+                model=self.modelId,
+                project=self.project,
+                location=self.location,
             )
             logger.info(
                 "LlmRemoteService initialized with ChatGoogleGenerativeAI "
                 "(model=%s, project=%s, location=%s)",
-                model,
-                project,
-                location,
+                self.modelId,
+                self.project,
+                self.location,
             )
         else:
-            self.llm = ChatGoogleGenerativeAI(model=model)
+            self.llm = ChatGoogleGenerativeAI(model=self.modelId)
             logger.info(
                 "LlmRemoteService initialized with ChatGoogleGenerativeAI "
                 "(model=%s, developer API / env credentials)",
-                model,
+                self.modelId,
             )
+
+    def startupInfo(self) -> dict:
+        info = super().startupInfo()
+        info["provider"] = "REMOTE"
+        info["modelId"] = self.modelId
+        info["location"] = self.location
+        if self.project:
+            info["project"] = self.project
+        return info
 
     def _invokeLogMessage(self) -> str:
         return "Sending request to Google Generative AI (Gemini)"

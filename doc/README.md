@@ -71,8 +71,8 @@ All components are class-based (OOP). Abstract interfaces define contracts; conc
 ### Google Generative AI / Vertex (REMOTE)
 
 - **Class**: `LlmRemoteService`
-- **Model**: `ChatGoogleGenerativeAI` from `langchain-google-genai` (default model `gemini-2.5-flash`, overridable with `GEMINI_MODEL`)
-- **Config**: `LLM_PROVIDER=REMOTE`. With `GCP_PROJECT_ID` or `GOOGLE_CLOUD_PROJECT`: Vertex + `GCP_LOCATION` / `GOOGLE_CLOUD_LOCATION`. Without project: developer API using `GOOGLE_API_KEY` or `GEMINI_API_KEY` (see LangChain docs).
+- **Model**: `ChatGoogleGenerativeAI` from `langchain-google-genai` (default model `gemini-2.5-flash`, overridable with `GOOGLE_MODEL_ID`)
+- **Config**: `LLM_PROVIDER=REMOTE`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` (default `us-central1`). Without project: developer API using `GOOGLE_API_KEY` (see LangChain docs).
 - **Auth**: ADC for Vertex; API key env vars for developer API
 
 ### Local Model (LOCAL)
