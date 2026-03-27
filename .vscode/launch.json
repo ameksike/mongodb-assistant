@@ -27,6 +27,13 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "envFile": "${workspaceFolder}/cfg/.env"
+        },
+        {
+            "name": "FastAPI: make dev",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "make dev",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
