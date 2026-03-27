@@ -7,18 +7,16 @@ from src.services.llmService import LlmService
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_MODEL = "gemini-2.5-flash"
-
 
 class LlmRemoteService(LlmService):
     """REMOTE provider: Gemini via LangChain ``ChatGoogleGenerativeAI`` (Vertex or API key)."""
 
+    defaultModel = "gemini-2.5-flash"
+
     def __init__(self):
-        model = os.getenv("GEMINI_MODEL", _DEFAULT_MODEL)
-        project = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
-        location = os.getenv("GCP_LOCATION") or os.getenv(
-            "GOOGLE_CLOUD_LOCATION", "us-central1"
-        )
+        model = os.getenv("GOOGLE_MODEL_ID", self.defaultModel)
+        project = os.getenv("GOOGLE_CLOUD_PROJECT")
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
 
         if project:
             self.llm = ChatGoogleGenerativeAI(

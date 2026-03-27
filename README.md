@@ -177,9 +177,9 @@ All settings are loaded from `cfg/.env`:
 | `WORKFLOW_DIR` | `cfg/workflows` | Directory for JSON workflow files |
 | `LLM_PROVIDER` | `LOCAL` | LLM provider: `LOCAL` or `REMOTE` |
 | `LLM_LOCAL_MODEL_PATH` | `models/mistral-7b-instruct-v0.2.Q4_K_M.gguf` | Path to local GGUF model |
-| `GCP_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT` | - | Google Cloud project for REMOTE LLM (Vertex); omit to use API key |
-| `GCP_LOCATION` / `GOOGLE_CLOUD_LOCATION` | `us-central1` | Region for Vertex |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model id for REMOTE |
+| `GOOGLE_CLOUD_PROJECT` | - | Google Cloud project for REMOTE LLM (Vertex); omit to use API key |
+| `GOOGLE_CLOUD_LOCATION` | `us-central1` | Region for Vertex |
+| `GOOGLE_MODEL_ID` | `gemini-2.5-flash` | Gemini model id for REMOTE |
 | `MDB_URI` | - | MongoDB connection URI (for MDB workflows) |
 
 ## 📁 Project Structure
