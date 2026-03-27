@@ -131,7 +131,7 @@ make model:clean
 python bin/download.py --force --model phi-2   # re-download from CLI
 ```
 
-If the file is already in `models/`, download **skips** the network (set `forceDownload=1` on `model:select` or `--force` on the script). The script updates `cfg/.env` `LOCAL_MODEL_PATH` when a download completes or when a skip still selects that catalog file.
+If the file is already in `models/`, download **skips** the network (set `forceDownload=1` on `model:select` or `--force` on the script). The script updates `cfg/.env` `LLM_LOCAL_MODEL_PATH` when a download completes or when a skip still selects that catalog file.
 
 ## 🔗 API
 
@@ -176,7 +176,7 @@ All settings are loaded from `cfg/.env`:
 | `WORKFLOW_PROVIDER` | `JSON` | Workflow source: `JSON` or `MDB` |
 | `WORKFLOW_DIR` | `cfg/workflows` | Directory for JSON workflow files |
 | `LLM_PROVIDER` | `LOCAL` | LLM provider: `LOCAL` or `REMOTE` |
-| `LOCAL_MODEL_PATH` | `models/mistral-7b-instruct-v0.2.Q4_K_M.gguf` | Path to local GGUF model |
+| `LLM_LOCAL_MODEL_PATH` | `models/mistral-7b-instruct-v0.2.Q4_K_M.gguf` | Path to local GGUF model |
 | `GCP_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT` | - | Google Cloud project for REMOTE LLM (Vertex); omit to use API key |
 | `GCP_LOCATION` / `GOOGLE_CLOUD_LOCATION` | `us-central1` | Region for Vertex |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model id for REMOTE |

@@ -187,10 +187,10 @@ class ModelDownloadService:
         lines = envPath.read_text(encoding="utf-8").splitlines()
         updated = False
         for i, line in enumerate(lines):
-            if line.startswith("LOCAL_MODEL_PATH="):
-                lines[i] = f"LOCAL_MODEL_PATH={newPath}"
+            if line.startswith("LLM_LOCAL_MODEL_PATH="):
+                lines[i] = f"LLM_LOCAL_MODEL_PATH={newPath}"
                 updated = True
                 break
         if updated:
             envPath.write_text("\n".join(lines) + "\n", encoding="utf-8")
-            logger.info("Updated cfg/.env: LOCAL_MODEL_PATH=%s", newPath)
+            logger.info("Updated cfg/.env: LLM_LOCAL_MODEL_PATH=%s", newPath)

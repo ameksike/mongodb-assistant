@@ -80,7 +80,7 @@ All components are class-based (OOP). Abstract interfaces define contracts; conc
 - **Class**: `LlmLocalService`
 - **Model**: `mistral-7b-instruct-v0.2.Q4_K_M.gguf` (quantized GGUF)
 - **Runtime**: `llama-cpp-python` + LangChain `LlamaCpp`
-- **Config**: `LLM_PROVIDER=LOCAL`, `LOCAL_MODEL_PATH`, `LOCAL_MODEL_N_CTX`, `LOCAL_MODEL_N_THREADS`, `LOCAL_MODEL_TEMPERATURE`, `LLM_PROMPT_FORMAT` (`text` default, or `json` to send workflow + conversation as structured JSON in the prompt)
+- **Config**: `LLM_PROVIDER=LOCAL`, `LLM_LOCAL_MODEL_PATH`, `LLM_LOCAL_MODEL_N_CTX`, `LLM_LOCAL_MODEL_N_THREADS`, `LLM_LOCAL_MODEL_TEMPERATURE`, `LLM_PROMPT_FORMAT` (`text` default, or `json` to send workflow + conversation as structured JSON in the prompt)
 - **Storage**: Place the `.gguf` file in the `models/` directory
 
 ### Downloading Models
@@ -102,7 +102,7 @@ Optional: `make model:select modelName=phi-2 forceDownload=1` to re-download. Se
 1. Download from Hugging Face (e.g. `https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF`)
 2. Choose the `Q4_K_M` quantization for best balance of quality and performance.
 3. Place the file in `models/` directory.
-4. Update `LOCAL_MODEL_PATH` in `cfg/.env`.
+4. Update `LLM_LOCAL_MODEL_PATH` in `cfg/.env`.
 
 **Custom model from any Hugging Face repo:**
 ```bash
