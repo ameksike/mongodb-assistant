@@ -1,30 +1,15 @@
 import logging
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from src.models.workflow import (
+    ProcessRequest,
+    ProcessResponse,
+)
 from src.services.workflowService import WorkflowService
 from src.services.llmService import LlmService
 from src.services.serviceFactory import ServiceFactory
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-class ConversationMessage(BaseModel):
-    role: str
-    message: str
-    step: str | None = None
-
-
-class ProcessRequest(BaseModel):
-    workflowId: str
-    conversation: list[ConversationMessage]
-    maxAnswers: int = Field(default=2, ge=1)
-
-
-class ProcessResponse(BaseModel):
-    workflowId: str
-    stepId: str
-    answers: list[str]
 
 
 class WorkflowController:
