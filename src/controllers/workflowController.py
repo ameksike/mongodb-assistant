@@ -48,6 +48,7 @@ class WorkflowController:
         logger.info(f"Processing workflow: {request.workflowId}")
         try:
             workflowContext = self.workflowService.loadWorkflow(request.workflowId)
+            # Transforming objects to dictionaries for LLM processing, excluding None fields
             conversationDicts = [msg.model_dump(exclude_none=True) for msg in request.conversation]
             stepId, answers = self.llmService.generateResponse({
                 "workflow": workflowContext,

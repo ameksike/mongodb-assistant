@@ -1,5 +1,9 @@
 import pytest
-from src.services.helpers import ResponseParser, coerceLlmContentToStr
+from src.services.helpers import (
+    ResponseParser,
+    coerceLlmContentToStr,
+    workflow_policy_items,
+)
 
 
 class TestResponseParser:
@@ -29,6 +33,17 @@ class TestResponseParser:
     def test_parseJsonMissingKey(self):
         with pytest.raises(ValueError):
             ResponseParser.parseJson('{"wrong": "format"}', 2)
+
+
+class TestWorkflowPolicyItems:
+    def test_prefers_policies_key(self):
+        assert workflow_policy_items({"policies": ["a"], "policy": ["b"]}) == ["a"]
+
+    def test_falls_back_to_policy(self):
+        assert workflow_policy_items({"policy": ["x"]}) == ["x"]
+
+    def test_empty_when_missing(self):
+        assert workflow_policy_items({}) == []
 
 
 class TestCoerceLlmContentToStr:

@@ -5,6 +5,17 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+def workflow_policy_items(workflow: dict) -> list:
+    """
+    Return policy lines for prompt building. Workflow JSON uses ``policies`` (plural);
+    ``policy`` (singular) is supported for older fixtures.
+    """
+    items = workflow.get("policies")
+    if items is not None:
+        return items
+    return workflow.get("policy", [])
+
+
 def coerceLlmContentToStr(content: Any) -> str:
     """Turn chat-model output content into a single string (LC 1.x / Gemini may use list parts)."""
     if content is None:

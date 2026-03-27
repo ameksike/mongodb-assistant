@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from src.services.helpers import coerceLlmContentToStr
+from src.services.helpers import coerceLlmContentToStr, workflow_policy_items
 from src.services.llmService import LlmService
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class LlmLocalService(LlmService):
             f"  - {s['id']}: {s['description']}" for s in workflow["steps"]
         )
         goalsText = "\n".join(f"  - {g}" for g in workflow["goals"])
-        policyText = "\n".join(f"  - {p}" for p in workflow["policy"])
+        policyText = "\n".join(f"  - {p}" for p in workflow_policy_items(workflow))
         conversationText = "\n".join(
             f"  {m['role']}: {m['message']}" for m in conversation
         )
