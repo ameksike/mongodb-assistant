@@ -71,18 +71,18 @@ health: ## Check if the server is running
 
 .PHONY: model-download
 model-download: ## Download the default local LLM model
-	$(BASE_PYTHON) scripts/downloadModel.py
+	$(BASE_PYTHON) bin/download.py
 
 .PHONY: model-list
 model-list: ## List available models in the catalog
-	$(BASE_PYTHON) scripts/downloadModel.py --list
+	$(BASE_PYTHON) bin/download.py --list
 
 .PHONY: model-select
 model-select: ## Download a specific model (usage: make model-select MODEL=mistral-7b-instruct)
 ifndef MODEL
 	$(error Usage: make model-select MODEL=<model-name>. Run 'make model-list' to see available models.)
 endif
-	$(BASE_PYTHON) scripts/downloadModel.py --model "$(MODEL)"
+	$(BASE_PYTHON) bin/download.py --model "$(MODEL)"
 
 .PHONY: model-custom
 model-custom: ## Download a custom model (usage: make model-custom REPO=user/repo FILE=model.gguf)
@@ -92,7 +92,7 @@ endif
 ifndef FILE
 	$(error Usage: make model-custom REPO=TheBloke/Model-GGUF FILE=model.Q4_K_M.gguf)
 endif
-	$(BASE_PYTHON) scripts/downloadModel.py --repo "$(REPO)" --file "$(FILE)"
+	$(BASE_PYTHON) bin/download.py --repo "$(REPO)" --file "$(FILE)"
 
 # ---- Test ------------------------------------------------------------------
 

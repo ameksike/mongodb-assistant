@@ -69,12 +69,12 @@ cp cfg/.env.example cfg/.env
 
 Catalog model:
 ```bash
-python scripts/downloadModel.py --model phi-2
+python bin/download.py --model phi-2
 ```
 
 Or list available models:
 ```bash
-python scripts/downloadModel.py --list
+python bin/download.py --list
 ```
 
 ### 6) Start the API server

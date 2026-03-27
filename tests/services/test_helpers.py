@@ -1,5 +1,5 @@
 import pytest
-from src.services.helpers import ResponseParser
+from src.services.helpers import ResponseParser, coerceLlmContentToStr
 
 
 class TestResponseParser:
@@ -29,3 +29,15 @@ class TestResponseParser:
     def test_parseJsonMissingKey(self):
         with pytest.raises(ValueError):
             ResponseParser.parseJson('{"wrong": "format"}', 2)
+
+
+class TestCoerceLlmContentToStr:
+    def test_strUnchanged(self):
+        assert coerceLlmContentToStr("hello") == "hello"
+
+    def test_noneBecomesEmpty(self):
+        assert coerceLlmContentToStr(None) == ""
+
+    def test_listOfTextDicts(self):
+        parts = [{"type": "text", "text": '{"stepId": "a", "answers": []}'}]
+        assert "stepId" in coerceLlmContentToStr(parts)

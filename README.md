@@ -52,7 +52,7 @@ Run `make help` to see all commands:
 
 ## 🧠 Model Management
 
-Models are managed through `cfg/models.json` (catalog) and downloaded via `scripts/downloadModel.py`.
+Models are managed through `cfg/models.json` (catalog) and downloaded via `bin/download.py`.
 
 ```bash
 # Catalog, on-disk status, and files in models/
@@ -136,7 +136,7 @@ tests/                 Unit and integration tests
 
 ## 📚 Documentation
 
-See [doc/README.md](doc/README.md) for detailed architecture and provider documentation. For **local LLM process layout** (in-process `llama-cpp-python` vs external servers like Ollama), see [doc/localLlmRuntime.md](doc/localLlmRuntime.md).
+See [doc/README.md](doc/README.md) for detailed architecture and provider documentation. For **local LLM process layout** (in-process `llama-cpp-python` vs external servers like Ollama), see [doc/llm.md](doc/llm.md).
 
 ### Related standards (agentic commerce and agents)
 

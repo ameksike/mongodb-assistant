@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+from src.services.helpers import coerceLlmContentToStr
 from src.services.llmService import LlmService
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,8 @@ class LlmLocalService(LlmService):
         prompt = self._buildPrompt(context)
         logger.info("Sending request to local LLM")
         response = self.llm.invoke(prompt)
-        return self._parseResponse(response, context)
+        raw = response.content if hasattr(response, "content") else response
+        return self._parseResponse(coerceLlmContentToStr(raw), context)
 
     def _buildPrompt(self, context: dict) -> str:
         workflow = context["workflow"]

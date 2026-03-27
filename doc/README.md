@@ -32,7 +32,7 @@ Need manual setup without `make`? See [setup.md](setup.md).
 | Document | Description |
 |----------|-------------|
 | [setup.md](setup.md) | Complete setup guide: simple path with `make` and full manual path without `make` |
-| [localLlmRuntime.md](localLlmRuntime.md) | Local LLM deployment: **in-process** (`llama-cpp-python`) vs **external servers** (e.g. Ollama); how this relates to LangChain |
+| [llm.md](llm.md) | Local LLM deployment: **in-process** (`llama-cpp-python`) vs **external servers** (e.g. Ollama); how this relates to LangChain |
 
 ---
 
@@ -81,7 +81,7 @@ All components are class-based (OOP). Abstract interfaces define contracts; conc
 
 ### Downloading Models
 
-Models are managed through `cfg/models.json` (catalog) and `scripts/downloadModel.py`.
+Models are managed through `cfg/models.json` (catalog) and `bin/download.py`.
 
 **Automated download (recommended):**
 ```bash
