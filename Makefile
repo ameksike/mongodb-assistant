@@ -26,6 +26,7 @@ PIP := $(VENV_PIP)
 UVICORN := $(VENV_UVICORN)
 PYTEST := $(VENV_PYTEST)
 APP_MODULE := src.main:app
+APP_PORT := 3333
 ENV_FILE := cfg/.env
 ENV_EXAMPLE := cfg/.env.example
 
@@ -74,16 +75,16 @@ project\:clean: ## Remove __pycache__, .pytest_cache, and *.pyc under project
 # ---- Run ------------------------------------------------------------------
 
 .PHONY: run\:dev
-run\:dev: ## Start API in development mode (auto-reload)
-	$(UVICORN) $(APP_MODULE) --reload --host 0.0.0.0 --port 8000
+run\:dev: ## Start API in development mode (auto-reload); port from APP_PORT (default 3333)
+	$(UVICORN) $(APP_MODULE) --reload --host 0.0.0.0 --port $(APP_PORT)
 
 .PHONY: run\:start
-run\:start: ## Start API in production mode
-	$(UVICORN) $(APP_MODULE) --host 0.0.0.0 --port 8000
+run\:start: ## Start API in production mode; port from APP_PORT (default 3333)
+	$(UVICORN) $(APP_MODULE) --host 0.0.0.0 --port $(APP_PORT)
 
 .PHONY: run\:health
-run\:health: ## Check GET /health (requires curl)
-	@curl -s http://localhost:8000/health | $(PYTHON) -m json.tool 2>/dev/null || echo "Server is not running."
+run\:health: ## Check GET /health (requires curl); port from APP_PORT
+	@curl -s http://localhost:$(APP_PORT)/health | $(PYTHON) -m json.tool 2>/dev/null || echo "Server is not running."
 
 # ---- Models ---------------------------------------------------------------
 
@@ -166,7 +167,7 @@ help: ## Show main targets (type colons as shown; GNU Make uses model\:name in t
 	@echo "  make model:custom huggingfaceRepo=TheBloke/phi-2-GGUF fileName=phi-2.Q4_K_M.gguf"
 	@echo "  make model:remove modelName=phi-2   OR   make model:remove fileName=foo.gguf"
 	@echo "  make model:clean"
-	@echo "  make run:dev"
+	@echo "  make run:dev    (default port $(APP_PORT); override: make run:dev APP_PORT=8080)"
 	@echo "  make test:run"
 	@echo ""
 	@echo "Groups:  deps:venv deps:install deps:installDev"

@@ -25,7 +25,9 @@ make model:select modelName=phi-2
 make dev
 ```
 
-Then open [http://localhost:8000/health](http://localhost:8000/health) or [http://localhost:8000/docs](http://localhost:8000/docs).
+Then open [http://localhost:3333/health](http://localhost:3333/health) or [http://localhost:3333/docs](http://localhost:3333/docs).
+
+The API port defaults to **3333** in the `Makefile` (`APP_PORT`) to avoid Windows reserved ranges (port 8000 often triggers `WinError 10013`). Override: `make run:dev APP_PORT=8080`.
 
 For full manual setup (without `make`), see [doc/setup.md](doc/setup.md).
 
@@ -90,9 +92,9 @@ Main targets use **`namespace:action`** (GNU Make escapes these as `model\:downl
 | `make project:info` | Print env, models on disk, Python version |
 | `make project:clean` | Remove `__pycache__`, `.pytest_cache`, `*.pyc` |
 | `make deps:install` | Install dependencies into `venv/` |
-| `make run:dev` | API dev server (reload) |
-| `make run:start` | API production mode |
-| `make run:health` | `GET /health` (needs `curl`) |
+| `make run:dev` | API dev server (reload); default port **3333** (`APP_PORT` in Makefile) |
+| `make run:start` | API production mode; same port variable |
+| `make run:health` | `GET /health` on the same port as `run:dev` (needs `curl`) |
 | `make model:download` | Download default catalog model (skips if file exists) |
 | `make model:list` | Catalog + on-disk status |
 | `make model:select modelName=phi-2` | Download one catalog model |

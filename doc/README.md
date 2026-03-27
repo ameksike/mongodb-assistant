@@ -22,8 +22,8 @@ make dev
 (`make run:dev` is the same as `make dev`. On **Windows CMD**, run these from the repo root with GNU Make on your `PATH`; see [setup.md](setup.md) for `cmd.exe` examples.)
 
 3) Verify the API:
-- `http://localhost:8000/health`
-- `http://localhost:8000/docs`
+- `http://localhost:3333/health`
+- `http://localhost:3333/docs`
 
 Need manual setup without `make`? See [setup.md](setup.md).
 

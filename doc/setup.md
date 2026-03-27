@@ -56,8 +56,8 @@ python bin\download.py --force --model phi-2
 ```
 
 Verify:
-- `http://localhost:8000/health`
-- `http://localhost:8000/docs`
+- `http://localhost:3333/health`
+- `http://localhost:3333/docs`
 
 What `make setup` does (same as `make project:setup`):
 - Creates `venv/`
@@ -139,19 +139,19 @@ python bin/download.py --clean
 ### 6) Start the API server
 
 ```bash
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.main:app --reload --host 0.0.0.0 --port 3333
 ```
 
 Windows CMD (venv active):
 
 ```bat
-venv\Scripts\uvicorn.exe src.main:app --reload --host 0.0.0.0 --port 8000
+venv\Scripts\uvicorn.exe src.main:app --reload --host 0.0.0.0 --port 3333
 ```
 
 ### 7) Verify
 
-- `http://localhost:8000/health`
-- `http://localhost:8000/docs`
+- `http://localhost:3333/health`
+- `http://localhost:3333/docs`
 
 ---
 

@@ -1,6 +1,7 @@
 import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from src.controllers.workflowController import router as workflowRouter
 
 load_dotenv(dotenv_path="cfg/.env")
@@ -17,6 +18,11 @@ app = FastAPI(
 )
 
 app.include_router(workflowRouter)
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health")

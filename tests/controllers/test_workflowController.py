@@ -77,3 +77,8 @@ class TestWorkflowController:
         response = self.client.get("/health")
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
+
+    def test_rootRedirectsToDocs(self):
+        response = self.client.get("/", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers.get("location") == "/docs"
