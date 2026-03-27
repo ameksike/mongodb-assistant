@@ -24,7 +24,7 @@ class ModelDownloadService:
 
     def _loadCatalog(self) -> dict:
         if self.catalogPath.exists():
-            with open(self.catalogPath, "r", encoding="utf-8") as f:
+            with open(self.catalogPath, encoding="utf-8") as f:
                 return json.load(f)
         return {"models": {}, "default": None}
 
@@ -67,10 +67,16 @@ class ModelDownloadService:
         if not onDisk:
             print("  (no .gguf or .bin files in models/)\n")
         else:
-            catalogByFile = {info["file"]: n for n, info in self.catalog.get("models", {}).items()}
+            catalogByFile = {
+                info["file"]: n for n, info in self.catalog.get("models", {}).items()
+            }
             for fname in sorted(onDisk):
                 path = self.modelsDir / fname
-                catNote = f"  (catalog: {catalogByFile[fname]})" if fname in catalogByFile else "  (custom / not in catalog)"
+                catNote = (
+                    f"  (catalog: {catalogByFile[fname]})"
+                    if fname in catalogByFile
+                    else "  (custom / not in catalog)"
+                )
                 print(f"  {fname}  ({self._formatFileSizeMb(path)}){catNote}")
             print()
 
@@ -93,7 +99,11 @@ class ModelDownloadService:
 
         if destPath.exists() and not force:
             size = destPath.stat().st_size / (1024 * 1024)
-            logger.info("Model already present, skipping download: %s (%s MB)", destPath, int(size))
+            logger.info(
+                "Model already present, skipping download: %s (%s MB)",
+                destPath,
+                int(size),
+            )
             self._updateEnv(filename)
             return
 
@@ -164,7 +174,9 @@ class ModelDownloadService:
             downloadedMb = downloaded / (1024 * 1024)
             totalMb = totalSize / (1024 * 1024)
             bar = "=" * int(percent // 2) + ">" + " " * (50 - int(percent // 2))
-            sys.stdout.write(f"\r  [{bar}] {percent:5.1f}% ({downloadedMb:.0f}/{totalMb:.0f} MB)")
+            sys.stdout.write(
+                f"\r  [{bar}] {percent:5.1f}% ({downloadedMb:.0f}/{totalMb:.0f} MB)"
+            )
             sys.stdout.flush()
 
     def _updateEnv(self, filename: str) -> None:

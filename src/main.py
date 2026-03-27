@@ -1,7 +1,9 @@
 import logging
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
+
 from src.controllers.workflowController import router as workflowRouter
 
 load_dotenv(dotenv_path="cfg/.env")

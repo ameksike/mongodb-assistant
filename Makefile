@@ -42,9 +42,8 @@ deps\:install: deps\:venv ## Install dependencies into venv
 	$(PIP) install -r requirements.txt
 
 .PHONY: deps\:installDev
-deps\:installDev: deps\:venv ## Install dependencies + ruff and black
-	$(PIP) install -r requirements.txt
-	$(PIP) install ruff black
+deps\:installDev: deps\:install ## Same as deps:install (pytest and ruff are in requirements.txt)
+	@echo "Dev tooling is listed in requirements.txt (no extra pip step)."
 
 # ---- Project --------------------------------------------------------------
 
@@ -146,15 +145,19 @@ test\:watch: ## Run tests in watch mode (requires pytest-watch)
 # ---- Quality ----------------------------------------------------------------
 
 .PHONY: quality\:lint
-quality\:lint: ## Run ruff on src/ and tests/
-	ruff check src/ tests/
+quality\:lint: ## Static analysis: ruff check on src/ and tests/
+	$(PYTHON) -m ruff check src/ tests/
 
 .PHONY: quality\:format
-quality\:format: ## Format with black
-	black src/ tests/
+quality\:format: ## Auto-format with ruff format
+	$(PYTHON) -m ruff format src/ tests/
+
+.PHONY: quality\:formatCheck
+quality\:formatCheck: ## Fail if code is not formatted (CI-friendly)
+	$(PYTHON) -m ruff format --check src/ tests/
 
 .PHONY: quality\:check
-quality\:check: quality\:lint test\:run ## Lint + tests
+quality\:check: quality\:lint quality\:formatCheck test\:run ## Lint + format check + tests
 
 # ---- Help & aliases ---------------------------------------------------------
 
@@ -175,7 +178,7 @@ help: ## Show main targets (type colons as shown; GNU Make uses model\:name in t
 	@echo "         run:dev run:start run:health"
 	@echo "         model:download model:list model:select model:custom model:remove model:clean"
 	@echo "         test:run test:cov test:watch"
-	@echo "         quality:lint quality:format quality:check"
+	@echo "         quality:lint quality:format quality:formatCheck quality:check"
 	@echo ""
 	@echo "Aliases: setup install dev start test check lint format clean health"
 	@echo ""

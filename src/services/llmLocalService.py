@@ -1,5 +1,6 @@
-import os
 import logging
+import os
+
 from src.services.llmService import LlmService
 
 logger = logging.getLogger(__name__)
@@ -10,9 +11,9 @@ class LlmLocalService(LlmService):
 
     def __init__(self):
         from langchain_community.llms import LlamaCpp
+
         modelPath = os.getenv(
-            "LOCAL_MODEL_PATH",
-            "models/mistral-7b-instruct-v0.2.Q4_K_M.gguf"
+            "LOCAL_MODEL_PATH", "models/mistral-7b-instruct-v0.2.Q4_K_M.gguf"
         )
         self.llm = LlamaCpp(
             model_path=modelPath,

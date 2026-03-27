@@ -217,4 +217,4 @@ class ResponseParser:
             return stepId, answers
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"Failed to parse LLM response: {e}")
-            raise ValueError(f"Invalid LLM response format: {e}")
+            raise ValueError(f"Invalid LLM response format: {e}") from e

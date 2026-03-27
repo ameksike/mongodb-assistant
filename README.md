@@ -44,14 +44,18 @@ Optional:
 
 ```bash
 make test-cov     # same as make test:cov — coverage report
-make check        # linter (ruff) + tests (quality:check)
+make check        # ruff lint + format check + tests (quality:check)
 ```
 
 Without `make` (from the project root, with the virtualenv active):
 
 ```bash
 pytest tests/ -v
+python -m ruff check src tests
+python -m ruff format --check src tests
 ```
+
+Details: [doc/code-quality.md](doc/code-quality.md).
 
 Run `make help` for grouped targets (`project:setup`, `model:list`, `run:dev`, `test:run`, …).
 
@@ -105,8 +109,10 @@ Main targets use **`namespace:action`** (GNU Make escapes these as `model\:downl
 | `make model:clean` | Delete all `.gguf` / `.bin` under `models/` |
 | `make test:run` | Pytest |
 | `make test:cov` | Pytest + coverage |
-| `make quality:lint` / `quality:format` | Ruff / Black |
-| `make quality:check` | Lint + tests |
+| `make quality:lint` | Ruff static analysis (`ruff check`) |
+| `make quality:format` | Ruff formatter (`ruff format`) |
+| `make quality:formatCheck` | Fail if sources are not formatted |
+| `make quality:check` | Lint + format check + tests |
 | `make help` | Short list of groups and examples |
 
 **Aliases (short names):** `setup`, `install`, `dev`, `start`, `test`, `test-cov`, `check`, `lint`, `format`, `clean`, `health`, `clean-models` (same as `model:clean`).

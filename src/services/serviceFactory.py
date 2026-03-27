@@ -1,7 +1,8 @@
-import os
 import logging
-from src.services.workflowService import WorkflowService
+import os
+
 from src.services.llmService import LlmService
+from src.services.workflowService import WorkflowService
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +16,10 @@ class ServiceFactory:
         logger.info(f"Resolving WorkflowService for provider: {provider}")
         if provider == "MDB":
             from src.services.workflowMdbService import WorkflowMdbService
+
             return WorkflowMdbService()
         from src.services.workflowJsonService import WorkflowJsonService
+
         return WorkflowJsonService()
 
     @staticmethod
@@ -25,6 +28,8 @@ class ServiceFactory:
         logger.info(f"Resolving LlmService for provider: {provider}")
         if provider == "REMOTE":
             from src.services.llmRemoteService import LlmRemoteService
+
             return LlmRemoteService()
         from src.services.llmLocalService import LlmLocalService
+
         return LlmLocalService()

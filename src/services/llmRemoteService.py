@@ -16,7 +16,9 @@ class LlmRemoteService(LlmService):
     def __init__(self):
         model = os.getenv("GEMINI_MODEL", _DEFAULT_MODEL)
         project = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
-        location = os.getenv("GCP_LOCATION") or os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+        location = os.getenv("GCP_LOCATION") or os.getenv(
+            "GOOGLE_CLOUD_LOCATION", "us-central1"
+        )
 
         if project:
             self.llm = ChatGoogleGenerativeAI(

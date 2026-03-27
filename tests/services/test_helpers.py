@@ -1,4 +1,5 @@
 import pytest
+
 from src.services.helpers import (
     DEFAULT_LLM_PARSE_ERROR,
     ResponseParser,
@@ -80,9 +81,9 @@ class TestParseWorkflowLlmResponse:
 
 class TestWorkflowPromptParts:
     def test_policy_items_prefers_policies_key(self):
-        assert WorkflowPromptParts.policy_items({"policies": ["a"], "policy": ["b"]}) == [
-            "a"
-        ]
+        assert WorkflowPromptParts.policy_items(
+            {"policies": ["a"], "policy": ["b"]}
+        ) == ["a"]
 
     def test_policy_items_falls_back_to_policy(self):
         assert WorkflowPromptParts.policy_items({"policy": ["x"]}) == ["x"]
@@ -91,9 +92,9 @@ class TestWorkflowPromptParts:
         assert WorkflowPromptParts.policy_items({}) == []
 
     def test_policy_items_non_list_policies_falls_back(self):
-        assert WorkflowPromptParts.policy_items({"policies": "bad", "policy": ["ok"]}) == [
-            "ok"
-        ]
+        assert WorkflowPromptParts.policy_items(
+            {"policies": "bad", "policy": ["ok"]}
+        ) == ["ok"]
 
     def test_bullet_lines_goals(self):
         wf = {"goals": ["a", None, "b"]}

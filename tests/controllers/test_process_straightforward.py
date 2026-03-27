@@ -14,13 +14,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 
-from src.main import app
 from src.controllers.workflowController import controller
+from src.main import app
 
 _ROOT = Path(__file__).resolve().parents[2]
 _STRAIGHTFORWARD_CONV_PATH = _ROOT / "cfg" / "conversations" / "straightforward.json"
@@ -37,7 +37,9 @@ def _strip_steps(messages: list[dict[str, Any]]) -> list[dict[str, str]]:
     return [{"role": m["role"], "message": m["message"]} for m in messages]
 
 
-def _agent_step_checkpoints(conversation: list[dict[str, Any]]) -> list[tuple[str, list[dict[str, Any]]]]:
+def _agent_step_checkpoints(
+    conversation: list[dict[str, Any]],
+) -> list[tuple[str, list[dict[str, Any]]]]:
     """
     (expected_step_id, prefix) for each agent message that defines ``step``.
     Prefix includes that agent turn (last message = agent), per workflow policy.
@@ -76,13 +78,19 @@ class TestProcessStraightforwardSupervisedSteps:
         controller._workflowService = self.originalWorkflowService
         controller._llmService = self.originalLlmService
 
-    @pytest.mark.parametrize(("expected_step_id", "prefix"), _pytest_checkpoint_params())
+    @pytest.mark.parametrize(
+        ("expected_step_id", "prefix"), _pytest_checkpoint_params()
+    )
     def test_process_returns_supervised_step_id(
         self, expected_step_id: str, prefix: list[dict[str, Any]]
     ):
         self.mockWorkflowService.loadWorkflow.return_value = self.workflow_payload
         answers = ["Suggested reply A", "Suggested reply B"]
-        self.mockLlmService.generateResponse.return_value = (expected_step_id, answers, None)
+        self.mockLlmService.generateResponse.return_value = (
+            expected_step_id,
+            answers,
+            None,
+        )
 
         payload = {
             "workflowId": "straightforward",
@@ -107,7 +115,9 @@ class TestProcessStraightforwardSupervisedSteps:
         declared = {s["id"] for s in wf["steps"]}
         data = _load_json(_STRAIGHTFORWARD_CONV_PATH)
         for step_id, _ in _agent_step_checkpoints(data["conversation"]):
-            assert step_id in declared, f"Supervised step {step_id!r} missing from workflow steps"
+            assert step_id in declared, (
+                f"Supervised step {step_id!r} missing from workflow steps"
+            )
 
 
 class TestProcessStraightforwardSlices:

@@ -42,7 +42,11 @@ class LlmService(ABC):
         if not isinstance(conversation, list):
             return "", [], "Invalid assistant context: conversation is missing."
         if not isinstance(max_answers, int) or max_answers < 1:
-            return "", [], "Invalid assistant context: maxAnswers must be a positive integer."
+            return (
+                "",
+                [],
+                "Invalid assistant context: maxAnswers must be a positive integer.",
+            )
         return None
 
     def _buildPrompt(self, context: dict) -> str:
@@ -62,7 +66,9 @@ class LlmService(ABC):
         steps_text = "\n".join(WorkflowPromptParts.bullet_lines(workflow, "steps"))
         goals_text = "\n".join(WorkflowPromptParts.bullet_lines(workflow, "goals"))
         policy_text = "\n".join(WorkflowPromptParts.bullet_lines(workflow, "policies"))
-        conversation_text = "\n".join(WorkflowPromptParts.conversation_lines(conversation))
+        conversation_text = "\n".join(
+            WorkflowPromptParts.conversation_lines(conversation)
+        )
         description = WorkflowPromptParts.description(workflow)
 
         return (
@@ -90,7 +96,9 @@ class LlmService(ABC):
         )
 
     @staticmethod
-    def _parseModelOutput(text: str, max_answers: int) -> tuple[str, list[str], str | None]:
+    def _parseModelOutput(
+        text: str, max_answers: int
+    ) -> tuple[str, list[str], str | None]:
         return parse_workflow_llm_response(text, max_answers)
 
     @abstractmethod

@@ -153,6 +153,10 @@ venv\Scripts\uvicorn.exe src.main:app --reload --host 0.0.0.0 --port 3333
 - `http://localhost:3333/health`
 - `http://localhost:3333/docs`
 
+### Lint and format (optional)
+
+With **make**: `make lint` (Ruff check), `make format` (Ruff format), `make check` (lint + format check + tests). See [code-quality.md](code-quality.md).
+
 ---
 
 ## Notes
@@ -160,3 +164,4 @@ venv\Scripts\uvicorn.exe src.main:app --reload --host 0.0.0.0 --port 3333
 - If you use Option A, you do not need to manually activate `venv` for project commands.
 - If you use Option B, activate `venv` every new terminal session.
 - `cfg/.env` controls providers and runtime settings (`LLM_PROVIDER`, `WORKFLOW_PROVIDER`, and model path).
+- Static analysis and formatting use **Ruff** (`pyproject.toml`, `requirements.txt`); see [code-quality.md](code-quality.md).

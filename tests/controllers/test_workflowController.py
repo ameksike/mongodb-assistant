@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock
+
 from fastapi.testclient import TestClient
-from src.main import app
+
 from src.controllers.workflowController import controller
+from src.main import app
 
 
 class TestWorkflowController:
@@ -37,13 +38,16 @@ class TestWorkflowController:
             None,
         )
 
-        response = self.client.post("/api/process", json={
-            "workflowId": "test_workflow",
-            "conversation": [
-                {"role": "user", "message": "Hello"},
-            ],
-            "maxAnswers": 2,
-        })
+        response = self.client.post(
+            "/api/process",
+            json={
+                "workflowId": "test_workflow",
+                "conversation": [
+                    {"role": "user", "message": "Hello"},
+                ],
+                "maxAnswers": 2,
+            },
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -78,28 +82,37 @@ class TestWorkflowController:
         data = response.json()
         assert data["stepId"] == ""
         assert data["answers"] == []
-        assert data["error"] == "No pude entender el último mensaje. Reformula tu pregunta."
+        assert (
+            data["error"]
+            == "No pude entender el último mensaje. Reformula tu pregunta."
+        )
 
     def test_processWorkflowNotFound(self):
         self.mockWorkflowService.loadWorkflow.side_effect = FileNotFoundError(
             "Workflow 'missing' not found"
         )
 
-        response = self.client.post("/api/process", json={
-            "workflowId": "missing",
-            "conversation": [
-                {"role": "user", "message": "Hello"},
-            ],
-        })
+        response = self.client.post(
+            "/api/process",
+            json={
+                "workflowId": "missing",
+                "conversation": [
+                    {"role": "user", "message": "Hello"},
+                ],
+            },
+        )
 
         assert response.status_code == 404
 
     def test_processWorkflowInvalidRequest(self):
-        response = self.client.post("/api/process", json={
-            "conversation": [
-                {"role": "user", "message": "Hello"},
-            ],
-        })
+        response = self.client.post(
+            "/api/process",
+            json={
+                "conversation": [
+                    {"role": "user", "message": "Hello"},
+                ],
+            },
+        )
 
         assert response.status_code == 422
 
