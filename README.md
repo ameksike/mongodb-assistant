@@ -13,62 +13,93 @@ A dynamic conversational assistance system built with **Python**, **FastAPI**, *
 - ✅ Pydantic request/response validation
 - 🏗️ Class-based OOP design throughout
 
-## 🚀 Get Started (Simple)
+## 🚀 Quick start (two separate flows)
 
-Use `make` to prepare everything and start the service:
+### 1️⃣ Run the project
+
+Use this when you want to **start the API** (local LLM example):
 
 ```bash
 make setup
-make model-select MODEL=phi-2
+make model:select modelName=phi-2
 make dev
 ```
 
-Health check: [http://localhost:8000/health](http://localhost:8000/health)
+Then open [http://localhost:8000/health](http://localhost:8000/health) or [http://localhost:8000/docs](http://localhost:8000/docs).
 
-For the full manual setup (without `make`) and a detailed comparison of both paths, see [doc/setup.md](doc/setup.md).
+For full manual setup (without `make`), see [doc/setup.md](doc/setup.md).
+
+### 2️⃣ Run the tests
+
+Use this when you only want to **verify the codebase** (no server required for unit tests):
+
+```bash
+make setup        # once: creates venv, installs deps (same as make project:setup)
+make test         # same as make test:run
+```
+
+Optional:
+
+```bash
+make test-cov     # same as make test:cov — coverage report
+make check        # linter (ruff) + tests (quality:check)
+```
+
+Without `make` (from the project root, with the virtualenv active):
+
+```bash
+pytest tests/ -v
+```
+
+Run `make help` for grouped targets (`project:setup`, `model:list`, `run:dev`, `test:run`, …).
+
+---
 
 ## 📦 Available Commands
 
-Run `make help` to see all commands:
+Main targets use **`namespace:action`** (GNU Make escapes these as `model\:download` in the Makefile; you type **`make model:download`**).
 
 | Command | Description |
 |---|---|
-| `make setup` | Full project setup (install deps + create .env) |
-| `make install` | Install all project dependencies |
-| `make dev` | Start server in development mode (auto-reload) |
-| `make start` | Start server in production mode |
-| `make test` | Run all tests |
-| `make check` | Run linter + tests |
-| `make model-download` | Download the default local LLM model |
-| `make model-list` | Catalog + download status; files already in `models/` |
-| `make model-select MODEL=name` | Download a specific model from the catalog |
-| `make model-custom REPO=x FILE=y` | Download any GGUF model from Hugging Face |
-| `make lint` | Run linter (ruff) |
-| `make format` | Format code (black) |
-| `make clean` | Remove cache files and build artifacts |
-| `make info` | Show current project configuration |
-| `make health` | Check if the server is running |
-| `make help` | Show all available commands |
+| `make project:setup` | Full setup: venv, deps, `cfg/.env` |
+| `make project:env` | Create `cfg/.env` from example only |
+| `make project:info` | Print env, models on disk, Python version |
+| `make project:clean` | Remove `__pycache__`, `.pytest_cache`, `*.pyc` |
+| `make deps:install` | Install dependencies into `venv/` |
+| `make run:dev` | API dev server (reload) |
+| `make run:start` | API production mode |
+| `make run:health` | `GET /health` (needs `curl`) |
+| `make model:download` | Download default catalog model (skips if file exists) |
+| `make model:list` | Catalog + on-disk status |
+| `make model:select modelName=phi-2` | Download one catalog model |
+| `make model:select modelName=phi-2 forceDownload=1` | Force re-download |
+| `make model:custom huggingfaceRepo=... fileName=...` | Custom Hugging Face GGUF |
+| `make model:remove modelName=phi-2` | Remove catalog model file from `models/` |
+| `make model:remove fileName=foo.gguf` | Remove a file by basename |
+| `make model:clean` | Delete all `.gguf` / `.bin` under `models/` |
+| `make test:run` | Pytest |
+| `make test:cov` | Pytest + coverage |
+| `make quality:lint` / `quality:format` | Ruff / Black |
+| `make quality:check` | Lint + tests |
+| `make help` | Short list of groups and examples |
+
+**Aliases (short names):** `setup`, `install`, `dev`, `start`, `test`, `test-cov`, `check`, `lint`, `format`, `clean`, `health`, `clean-models` (same as `model:clean`).
 
 ## 🧠 Model Management
 
-Models are managed through `cfg/models.json` (catalog) and downloaded via `bin/download.py`.
+Models are managed through `cfg/models.json` (catalog) and `bin/download.py`.
 
 ```bash
-# Catalog, on-disk status, and files in models/
-make model-list
-
-# Download the default model (Mistral 7B Instruct Q4_K_M)
-make model-download
-
-# Download a specific catalog model
-make model-select MODEL=phi-2
-
-# Download any GGUF from Hugging Face
-make model-custom REPO=TheBloke/Mistral-7B-Instruct-v0.2-GGUF FILE=mistral-7b-instruct-v0.2.Q5_K_M.gguf
+make model:list
+make model:download
+make model:select modelName=phi-2
+make model:custom huggingfaceRepo=TheBloke/Mistral-7B-Instruct-v0.2-GGUF fileName=mistral-7b-instruct-v0.2.Q5_K_M.gguf
+make model:remove modelName=phi-2
+make model:clean
+python bin/download.py --force --model phi-2   # re-download from CLI
 ```
 
-The download script automatically updates `cfg/.env` with the new model path.
+If the file is already in `models/`, download **skips** the network (set `forceDownload=1` on `model:select` or `--force` on the script). The script updates `cfg/.env` `LOCAL_MODEL_PATH` when a download completes or when a skip still selects that catalog file.
 
 ## 🔗 API
 
@@ -127,8 +158,9 @@ cfg/
 doc/                   Detailed documentation
 iac/                   Infrastructure files (Docker/K8s)
 models/                Local LLM model files (.gguf)
-scripts/               Automation scripts
+bin/                   Model download CLI (`download.py`)
 src/controllers/       FastAPI REST API layer
+src/models/            Pydantic API schemas
 src/services/          Business logic (abstract + concrete)
 src/utils/             Utility classes
 tests/                 Unit and integration tests
@@ -155,14 +187,6 @@ These open protocols sit alongside conversational and commerce-oriented agent sy
 | **LangChain** | [Python docs](https://python.langchain.com/docs/) |
 | **Vertex AI + Gemini** (remote) | [Vertex AI generative AI](https://cloud.google.com/vertex-ai/generative-ai/docs/overview) · [LangChain Google integrations](https://python.langchain.com/docs/integrations/providers/google/) · [`langchain-google-vertexai` reference](https://reference.langchain.com/python/langchain_google_vertexai/) |
 | **Local GGUF** (llama-cpp) | [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) · [LangChain LlamaCpp](https://python.langchain.com/docs/integrations/llms/llamacpp/) |
-
-## 🧪 Testing
-
-```bash
-make test         # Run all tests
-make test-cov     # Run tests with coverage
-make check        # Lint + tests
-```
 
 ## 📄 License
 

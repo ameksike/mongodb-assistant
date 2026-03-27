@@ -1,8 +1,8 @@
 # ============================================================================
 # Conversational Assistance System - Project Commands
 # ============================================================================
-# Usage: make <command>
-# Run `make help` to see all available commands.
+# Targets use namespace:action (colon). Example: make model:select modelName=phi-2
+# Short aliases: setup, dev, test, install (see bottom).
 # ============================================================================
 
 .DEFAULT_GOAL := help
@@ -29,135 +29,171 @@ APP_MODULE := src.main:app
 ENV_FILE := cfg/.env
 ENV_EXAMPLE := cfg/.env.example
 
-# ---- Setup -----------------------------------------------------------------
+# ---- Dependencies ---------------------------------------------------------
 
-.PHONY: install
-install: venv ## Install all project dependencies in virtual environment
-	$(PIP) install -r requirements.txt
-
-.PHONY: install-dev
-install-dev: venv ## Install dependencies + dev tools (linting, formatting)
-	$(PIP) install -r requirements.txt
-	$(PIP) install ruff black
-
-.PHONY: setup
-setup: install env ## Full project setup (install deps + create .env)
-	@echo "Setup complete. Edit cfg/.env with your settings."
-
-.PHONY: env
-env: ## Create cfg/.env from example if it does not exist
-	@$(BASE_PYTHON) -c "from pathlib import Path; import shutil; env=Path(r'$(ENV_FILE)'); ex=Path(r'$(ENV_EXAMPLE)'); exists=env.exists(); (print(f'{env} already exists, skipping.') if exists else (shutil.copyfile(ex, env), print(f'Created {env} from {ex}')))"
-
-.PHONY: venv
-venv: ## Create a Python virtual environment
+.PHONY: deps\:venv
+deps\:venv: ## Create Python virtual environment
 	$(BASE_PYTHON) -m venv $(VENV_DIR)
 	@echo "Virtual environment ready in $(VENV_DIR)"
 
-# ---- Run -------------------------------------------------------------------
+.PHONY: deps\:install
+deps\:install: deps\:venv ## Install dependencies into venv
+	$(PIP) install -r requirements.txt
 
-.PHONY: dev
-dev: ## Start the server in development mode (auto-reload)
-	$(UVICORN) $(APP_MODULE) --reload --host 0.0.0.0 --port 8000
+.PHONY: deps\:installDev
+deps\:installDev: deps\:venv ## Install dependencies + ruff and black
+	$(PIP) install -r requirements.txt
+	$(PIP) install ruff black
 
-.PHONY: start
-start: ## Start the server in production mode
-	$(UVICORN) $(APP_MODULE) --host 0.0.0.0 --port 8000
+# ---- Project --------------------------------------------------------------
 
-.PHONY: health
-health: ## Check if the server is running
-	@curl -s http://localhost:8000/health | $(PYTHON) -m json.tool 2>/dev/null || echo "Server is not running."
+.PHONY: project\:env
+project\:env: ## Create cfg/.env from example if it does not exist
+	@$(BASE_PYTHON) -c "from pathlib import Path; import shutil; env=Path(r'$(ENV_FILE)'); ex=Path(r'$(ENV_EXAMPLE)'); exists=env.exists(); (print(f'{env} already exists, skipping.') if exists else (shutil.copyfile(ex, env), print(f'Created {env} from {ex}')))"
 
-# ---- Models ----------------------------------------------------------------
+.PHONY: project\:setup
+project\:setup: deps\:install project\:env ## Full setup: venv, deps, and .env
+	@echo "Setup complete. Edit cfg/.env with your settings."
 
-.PHONY: model-download
-model-download: ## Download the default local LLM model
-	$(BASE_PYTHON) bin/download.py
-
-.PHONY: model-list
-model-list: ## List available models in the catalog
-	$(BASE_PYTHON) bin/download.py --list
-
-.PHONY: model-select
-model-select: ## Download a specific model (usage: make model-select MODEL=mistral-7b-instruct)
-ifndef MODEL
-	$(error Usage: make model-select MODEL=<model-name>. Run 'make model-list' to see available models.)
-endif
-	$(BASE_PYTHON) bin/download.py --model "$(MODEL)"
-
-.PHONY: model-custom
-model-custom: ## Download a custom model (usage: make model-custom REPO=user/repo FILE=model.gguf)
-ifndef REPO
-	$(error Usage: make model-custom REPO=TheBloke/Model-GGUF FILE=model.Q4_K_M.gguf)
-endif
-ifndef FILE
-	$(error Usage: make model-custom REPO=TheBloke/Model-GGUF FILE=model.Q4_K_M.gguf)
-endif
-	$(BASE_PYTHON) bin/download.py --repo "$(REPO)" --file "$(FILE)"
-
-# ---- Test ------------------------------------------------------------------
-
-.PHONY: test
-test: ## Run all tests
-	$(PYTEST) tests/ -v
-
-.PHONY: test-cov
-test-cov: ## Run tests with coverage report
-	$(PYTEST) tests/ -v --cov=src --cov-report=term-missing
-
-.PHONY: test-watch
-test-watch: ## Run tests in watch mode (requires pytest-watch)
-	ptw tests/ -- -v
-
-# ---- Code Quality ----------------------------------------------------------
-
-.PHONY: lint
-lint: ## Run linter (ruff)
-	ruff check src/ tests/
-
-.PHONY: format
-format: ## Format code (black)
-	black src/ tests/
-
-.PHONY: check
-check: lint test ## Run linter + tests
-
-# ---- Clean -----------------------------------------------------------------
-
-.PHONY: clean
-clean: ## Remove Python cache files and build artifacts
-	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	@echo "Cleaned."
-
-.PHONY: clean-models
-clean-models: ## Remove all downloaded model files
-	rm -f models/*.gguf models/*.bin
-	@echo "Model files removed."
-
-# ---- Info ------------------------------------------------------------------
-
-.PHONY: info
-info: ## Show current project configuration
+.PHONY: project\:info
+project\:info: ## Print cfg/.env (non-comments), models dir, Python version
 	@echo "=== Environment ==="
-	@if [ -f $(ENV_FILE) ]; then \
-		grep -v "^#" $(ENV_FILE) | grep -v "^$$"; \
-	else \
-		echo "No $(ENV_FILE) found. Run 'make env' to create it."; \
-	fi
+	@$(BASE_PYTHON) -c "from pathlib import Path; p=Path(r'$(ENV_FILE)'); print(''.join(l+'\n' for l in p.read_text(encoding='utf-8').splitlines() if l.strip() and not l.lstrip().startswith('#')) if p.exists() else 'No cfg/.env. Run make project:env.\n')"
 	@echo ""
 	@echo "=== Models ==="
-	@ls -lh models/*.gguf 2>/dev/null || echo "No models downloaded. Run 'make model-download'."
+	@$(BASE_PYTHON) -c "import os, pathlib as P; d=P.Path('models'); f=sorted([p for p in d.glob('*') if p.is_file() and p.suffix.lower() in ('.gguf','.bin')]) if d.exists() else []; print(os.linesep.join('  %%s  (%%s MB)'%%(p.name,p.stat().st_size//1024//1024) for p in f) if f else '  No models. Run make model:download.')"
 	@echo ""
 	@echo "=== Python ==="
 	@$(PYTHON) --version
 
-# ---- Help ------------------------------------------------------------------
+.PHONY: project\:clean
+project\:clean: ## Remove __pycache__, .pytest_cache, and *.pyc under project
+	@$(BASE_PYTHON) -c "import shutil; from pathlib import Path; r=Path('.'); [shutil.rmtree(p,ignore_errors=True) for p in r.rglob('__pycache__') if p.is_dir()]; [shutil.rmtree(p,ignore_errors=True) for p in r.rglob('.pytest_cache') if p.is_dir()]; [p.unlink(missing_ok=True) for p in r.rglob('*.pyc')]"
+	@echo "Cleaned Python caches."
+
+# ---- Run ------------------------------------------------------------------
+
+.PHONY: run\:dev
+run\:dev: ## Start API in development mode (auto-reload)
+	$(UVICORN) $(APP_MODULE) --reload --host 0.0.0.0 --port 8000
+
+.PHONY: run\:start
+run\:start: ## Start API in production mode
+	$(UVICORN) $(APP_MODULE) --host 0.0.0.0 --port 8000
+
+.PHONY: run\:health
+run\:health: ## Check GET /health (requires curl)
+	@curl -s http://localhost:8000/health | $(PYTHON) -m json.tool 2>/dev/null || echo "Server is not running."
+
+# ---- Models ---------------------------------------------------------------
+
+.PHONY: model\:download
+model\:download: ## Download default catalog model (skips if already on disk)
+	$(BASE_PYTHON) bin/download.py
+
+.PHONY: model\:list
+model\:list: ## List catalog entries and files in models/
+	$(BASE_PYTHON) bin/download.py --list
+
+.PHONY: model\:select
+model\:select: ## Download catalog model: make model:select modelName=phi-2
+ifndef modelName
+	$(error Usage: make model:select modelName=<catalog-key> - see make model:list)
+endif
+	$(BASE_PYTHON) bin/download.py --model "$(modelName)" $(if $(strip $(forceDownload)),--force,)
+
+.PHONY: model\:custom
+model\:custom: ## Download custom Hugging Face file: huggingfaceRepo=... fileName=...
+ifndef huggingfaceRepo
+	$(error Usage: make model:custom huggingfaceRepo=TheBloke/Model-GGUF fileName=model.Q4_K_M.gguf)
+endif
+ifndef fileName
+	$(error Usage: make model:custom huggingfaceRepo=TheBloke/Model-GGUF fileName=model.Q4_K_M.gguf)
+endif
+	$(BASE_PYTHON) bin/download.py --repo "$(huggingfaceRepo)" --file "$(fileName)" $(if $(strip $(forceDownload)),--force,)
+
+.PHONY: model\:remove
+model\:remove: ## Remove one file: modelName=<catalog> OR fileName=<basename>
+ifdef modelName
+	$(BASE_PYTHON) bin/download.py --remove "$(modelName)"
+else
+ifdef fileName
+	$(BASE_PYTHON) bin/download.py --remove-file "$(fileName)"
+else
+	$(error Usage: make model:remove modelName=<catalog-key> OR fileName=<file.gguf>)
+endif
+endif
+
+.PHONY: model\:clean
+model\:clean: ## Delete all .gguf and .bin files under models/
+	$(BASE_PYTHON) bin/download.py --clean
+
+# ---- Test ------------------------------------------------------------------
+
+.PHONY: test\:run
+test\:run: ## Run pytest on tests/
+	$(PYTEST) tests/ -v
+
+.PHONY: test\:cov
+test\:cov: ## Run tests with coverage report
+	$(PYTEST) tests/ -v --cov=src --cov-report=term-missing
+
+.PHONY: test\:watch
+test\:watch: ## Run tests in watch mode (requires pytest-watch)
+	ptw tests/ -- -v
+
+# ---- Quality ----------------------------------------------------------------
+
+.PHONY: quality\:lint
+quality\:lint: ## Run ruff on src/ and tests/
+	ruff check src/ tests/
+
+.PHONY: quality\:format
+quality\:format: ## Format with black
+	black src/ tests/
+
+.PHONY: quality\:check
+quality\:check: quality\:lint test\:run ## Lint + tests
+
+# ---- Help & aliases ---------------------------------------------------------
 
 .PHONY: help
-help: ## Show this help message
+help: ## Show main targets (type colons as shown; GNU Make uses model\:name in the file)
 	@echo ""
-	@echo "Usage: make <command>"
+	@echo "Examples:"
+	@echo "  make project:setup"
+	@echo "  make model:select modelName=phi-2   (optional: forceDownload=1 to re-download)"
+	@echo "  make model:custom huggingfaceRepo=TheBloke/phi-2-GGUF fileName=phi-2.Q4_K_M.gguf"
+	@echo "  make model:remove modelName=phi-2   OR   make model:remove fileName=foo.gguf"
+	@echo "  make model:clean"
+	@echo "  make run:dev"
+	@echo "  make test:run"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+	@echo "Groups:  deps:venv deps:install deps:installDev"
+	@echo "         project:setup project:env project:info project:clean"
+	@echo "         run:dev run:start run:health"
+	@echo "         model:download model:list model:select model:custom model:remove model:clean"
+	@echo "         test:run test:cov test:watch"
+	@echo "         quality:lint quality:format quality:check"
 	@echo ""
+	@echo "Aliases: setup install dev start test check lint format clean health"
+	@echo ""
+
+.PHONY: install setup dev start test check lint format test-cov clean-models
+install: deps\:install
+setup: project\:setup
+dev: run\:dev
+start: run\:start
+test: test\:run
+test-cov: test\:cov
+check: quality\:check
+lint: quality\:lint
+format: quality\:format
+
+.PHONY: clean
+clean: project\:clean
+
+clean-models: model\:clean
+
+.PHONY: health
+health: run\:health

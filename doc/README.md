@@ -15,7 +15,7 @@ make setup
 2) Download one model and run the server:
 
 ```bash
-make model-select MODEL=phi-2
+make model:select modelName=phi-2
 make dev
 ```
 
@@ -85,9 +85,11 @@ Models are managed through `cfg/models.json` (catalog) and `bin/download.py`.
 
 **Automated download (recommended):**
 ```bash
-make model-download                # download default model
-make model-list                    # catalog + status; files already in models/
-make model-select MODEL=phi-2     # download a specific model
+make model:download
+make model:list
+make model:select modelName=phi-2
+make model:remove modelName=phi-2    # remove catalog file from models/
+make model:clean                    # remove all .gguf / .bin in models/
 ```
 
 **Manual download:**
@@ -98,7 +100,7 @@ make model-select MODEL=phi-2     # download a specific model
 
 **Custom model from any Hugging Face repo:**
 ```bash
-make model-custom REPO=TheBloke/Model-GGUF FILE=model.Q4_K_M.gguf
+make model:custom huggingfaceRepo=TheBloke/Model-GGUF fileName=model.Q4_K_M.gguf
 ```
 
 The download script automatically updates `cfg/.env` with the correct model path.

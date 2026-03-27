@@ -10,7 +10,7 @@ This is the fastest path.
 
 ```bash
 make setup
-make model-select MODEL=phi-2
+make model:select modelName=phi-2
 make dev
 ```
 
@@ -67,14 +67,21 @@ cp cfg/.env.example cfg/.env
 
 ### 5) Download a local model
 
-Catalog model:
+Catalog model (skips download if the file already exists; use `--force` to re-download):
 ```bash
 python bin/download.py --model phi-2
 ```
 
-Or list available models:
+List catalog and on-disk files:
 ```bash
 python bin/download.py --list
+```
+
+Remove one catalog model file or clean `models/`:
+```bash
+python bin/download.py --remove phi-2
+python bin/download.py --remove-file custom.gguf
+python bin/download.py --clean
 ```
 
 ### 6) Start the API server
