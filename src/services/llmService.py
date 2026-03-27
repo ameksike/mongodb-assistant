@@ -23,13 +23,16 @@ class LlmService(ABC):
     """
 
     envPromptFormat = "LLM_PROMPT_FORMAT"
-    defaultPromptFormat = "json"
+    defaultPromptFormat = "text"
 
     outputRulesText = (
         "You MUST output exactly one JSON object. Do not add markdown, comments, "
         "or any text before or after the JSON.\n"
         'On success: {"stepId":"<id from workflow steps>","answers":["...", ...]} — '
-        "answers must contain exactly maxAnswers strings, each a concise suggested user reply.\n"
+        "answers must contain exactly maxAnswers strings. Each answer is a short, "
+        "natural message that the USER (buyer/customer) would send back to the AGENT "
+        "in response to the agent's latest message. They are NOT agent messages. "
+        "Write them in first person from the user's point of view.\n"
         'On failure: {"error":"<short user-visible message in the conversation language>"} '
         "(omit or null stepId/answers).\n"
         "Do not output Python, scripts, unit tests, or markdown code fences. "
@@ -37,8 +40,8 @@ class LlmService(ABC):
     )
 
     exampleSuccessJson = (
-        '{"stepId":"shopping-agent-introduction","answers":['
-        '"I want running shoes.","I am looking for a coffee maker."]}'
+        '{"stepId":"merchant-agent-introduction","answers":['
+        '"Yes, please proceed with those details."]}'
     )
 
     def _outputRulesAndExample(self) -> str:
@@ -51,7 +54,11 @@ class LlmService(ABC):
     def _instructionForJsonPayload(self, maxAnswers: int) -> str:
         """Full instruction string embedded in the JSON prompt (self-contained for the model)."""
         return (
-            "You are a conversational assistant analyzing a workflow-driven dialogue. "
+            "You are a conversational assistant analyzing a workflow-driven dialogue.\n\n"
+            "Role clarification:\n"
+            "- 'user' is the buyer/customer who wants to make a purchase.\n"
+            "- 'agent' is the shopping assistant who guides the user through the process.\n"
+            "- The last message in the conversation is always from the agent.\n\n"
             "The workflow object contains description, goals, policies, and steps "
             "(each step has id and description). The conversation array is the message history "
             "(role user or agent, message text). Root-level keys in this prompt JSON use camelCase "
@@ -59,8 +66,10 @@ class LlmService(ABC):
             "Tasks:\n"
             "1) Determine the current active step: choose stepId from workflow.steps[].id that "
             "best matches the latest agent message given the full conversation and policies.\n"
-            f"2) Generate exactly as many short suggested user replies as maxAnswers indicates "
-            f"(here {maxAnswers}), aligned with goals and policies and advancing the flow.\n\n"
+            f"2) Generate exactly {maxAnswers} suggested replies that the USER (buyer) would "
+            "send back to the agent. These must be written from the user's perspective "
+            "(first person), be coherent responses to the agent's latest message, and "
+            "advance the workflow toward the next step.\n\n"
             + self._outputRulesAndExample()
         )
 
@@ -190,15 +199,21 @@ class LlmService(ABC):
 
         return (
             "You are a conversational assistant analyzing a workflow.\n\n"
+            "Role clarification:\n"
+            "- 'user' is the buyer/customer who wants to make a purchase.\n"
+            "- 'agent' is the shopping assistant who guides the user through the process.\n"
+            "- The last message in the conversation is always from the agent.\n\n"
             f"Workflow: {description}\n\n"
             f"Goals:\n{goalsText}\n\n"
             f"Policies:\n{policyText}\n\n"
             f"Steps:\n{stepsText}\n\n"
             f"Conversation so far:\n{conversationText}\n\n"
-            f"Based on the conversation, determine:\n"
-            f"1. The current active step ID from the workflow steps.\n"
-            f"2. Generate exactly {maxAnswers} suggested user responses that align "
-            f"with the workflow goals and policies.\n\n"
+            "Based on the conversation, determine:\n"
+            "1. The current active step ID from the workflow steps.\n"
+            f"2. Generate exactly {maxAnswers} suggested replies that the USER (buyer) "
+            "would send back to the agent. Write them from the user's perspective "
+            "(first person), as coherent responses to the agent's latest message, "
+            "advancing the workflow toward the next step.\n\n"
             + self._outputRulesAndExample()
         )
 

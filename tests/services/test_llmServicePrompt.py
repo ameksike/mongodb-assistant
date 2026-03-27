@@ -42,6 +42,7 @@ def test_build_prompt_json_shape(sample_context, monkeypatch):
     assert data["workflow"]["steps"] == [{"id": "step-a", "description": "First."}]
     assert len(data["conversation"]) == 2
     assert "stepId" in data["instruction"]
+    assert "buyer" in data["instruction"].lower()
 
 
 def test_build_prompt_text_contains_sections(sample_context, monkeypatch):
@@ -54,6 +55,7 @@ def test_build_prompt_text_contains_sections(sample_context, monkeypatch):
     assert "Steps:" in raw
     assert "user: Hi" in raw
     assert "Example success:" in raw
+    assert "buyer" in raw.lower()
 
 
 def test_default_format_is_text(sample_context, monkeypatch):
