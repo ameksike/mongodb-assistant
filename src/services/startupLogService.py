@@ -42,7 +42,7 @@ class StartupLogService:
         if llmProvider.upper() == "LOCAL":
             self._appendLocalInfo(lines, llmInfo)
         else:
-            self._appendRemoteInfo(lines, llmInfo)
+            self._appendRemoteInfo(lines, llmInfo, llmProvider)
 
         lines.append("============================================")
         logger.info("\n".join(lines))
@@ -95,11 +95,18 @@ class StartupLogService:
         lines.append(f"  Threads           : {nThreads}")
         lines.append(f"  Temperature       : {temperature}")
 
-    def _appendRemoteInfo(self, lines: list[str], llmInfo: dict) -> None:
+    def _appendRemoteInfo(
+        self, lines: list[str], llmInfo: dict, llmProvider: str = ""
+    ) -> None:
         modelId = llmInfo.get("modelId", os.getenv("GOOGLE_MODEL_ID", "n/a"))
         lines.append(f"  Model             : {modelId}")
+        sdk = llmInfo.get("sdk")
+        if sdk:
+            lines.append(f"  SDK               : {sdk}")
         authMode = llmInfo.get("authMode", "n/a")
         lines.append(f"  Auth mode         : {authMode}")
+        if llmInfo.get("jsonEnforced"):
+            lines.append("  JSON enforced     : yes (response_mime_type)")
         project = llmInfo.get("project", os.getenv("GOOGLE_CLOUD_PROJECT"))
         if project:
             lines.append(f"  GCP project       : {project}")

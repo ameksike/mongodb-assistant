@@ -69,12 +69,26 @@ All components are class-based (OOP). Abstract interfaces define contracts; conc
 
 ## LLM Providers
 
-### Google Generative AI / Vertex (REMOTE)
+| Provider | Class | SDK | JSON enforced |
+|----------|-------|-----|---------------|
+| `LOCAL` (default) | `LlmLocalService` | `llama-cpp-python` + LangChain | No |
+| `REMOTE` | `LlmRemoteService` | LangChain `ChatGoogleGenerativeAI` | No |
+| `VERTEXAI` | `LlmVertexAiService` | `google-genai` (direct) | Yes (`response_mime_type`) |
+
+### Google Generative AI / Vertex via LangChain (REMOTE)
 
 - **Class**: `LlmRemoteService`
 - **Model**: `ChatGoogleGenerativeAI` from `langchain-google-genai` (default model `gemini-2.5-flash`, overridable with `GOOGLE_MODEL_ID`)
 - **Config**: `LLM_PROVIDER=REMOTE`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` (default `us-central1`). Without project: developer API using `GOOGLE_API_KEY` (see LangChain docs).
 - **Auth**: ADC for Vertex; API key env vars for developer API
+
+### Google Generative AI / Vertex via direct SDK (VERTEXAI)
+
+- **Class**: `LlmVertexAiService`
+- **SDK**: `google-genai` (`genai.Client`) — no LangChain wrapper
+- **Model**: default `gemini-2.5-flash`, overridable with `GOOGLE_MODEL_ID`
+- **Config**: `LLM_PROVIDER=VERTEXAI` plus either `GOOGLE_API_KEY` (API key mode) or `GOOGLE_CLOUD_PROJECT` + `GOOGLE_CLOUD_LOCATION` (Vertex AI / ADC mode)
+- **Key advantage**: sets `response_mime_type="application/json"` so the model is forced to return valid JSON — no markdown fences, no extra text, no post-processing
 
 ### Local Model (LOCAL)
 
