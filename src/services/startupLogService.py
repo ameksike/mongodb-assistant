@@ -98,6 +98,8 @@ class StartupLogService:
     def _appendRemoteInfo(self, lines: list[str], llmInfo: dict) -> None:
         modelId = llmInfo.get("modelId", os.getenv("GOOGLE_MODEL_ID", "n/a"))
         lines.append(f"  Model             : {modelId}")
+        authMode = llmInfo.get("authMode", "n/a")
+        lines.append(f"  Auth mode         : {authMode}")
         project = llmInfo.get("project", os.getenv("GOOGLE_CLOUD_PROJECT"))
         if project:
             lines.append(f"  GCP project       : {project}")
