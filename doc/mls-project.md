@@ -1,77 +1,42 @@
 # Project Summary: Mandate Ledger Service - AP2 & UCP Protocol Implementation supported on MongoDB
 
+> For a detailed explanation of AP2 protocol theory (actors, VDCs, workflows, threat model, dispute resolution, ecosystem, and roadmap), see [AP2 Summary](./ap2-summary.md.md). This document focuses on **how this project implements** AP2 and UCP, and answers architectural and security questions specific to this codebase.
+
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Protocol Definitions](#protocol-definitions)
-3. [Architecture](#architecture)
-4. [Transaction Lifecycle](#transaction-lifecycle)
-5. [Key Questions Answered](#key-questions-answered)
-   - [How does merchant discovery happen?](#1-how-does-merchant-discovery-happen-what-is-the-well-known)
-   - [How is the user signature created, and how can it be verified?](#2-how-is-the-user-signature-created-and-how-can-it-be-verified)
-   - [How is immutability ensured?](#3-how-is-immutability-ensured)
-   - [How is idempotency ensured?](#4-how-is-idempotency-ensured)
-   - [How is compliance ensured?](#5-how-is-compliance-ensured)
-6. [Extended Questions: Multi-Merchant Ecosystem, Protocol Interactions, and MCP](#extended-questions-multi-merchant-ecosystem-protocol-interactions-and-mcp)
-   - [Multi-Merchant Discovery: Who Is Responsible?](#6-multi-merchant-discovery-who-is-responsible)
-   - [How Does UCP Ensure ChatGPT/Gemini Can Make Purchases?](#7-how-does-ucp-ensure-that-systems-like-chatgpt-or-gemini-can-make-purchases)
-   - [Multi-Merchant Product Search](#8-multi-merchant-product-search-how-does-a-user-find-speakers-across-merchants)
-   - [Service Interaction: The Complete Flow](#9-service-interaction-the-complete-multi-protocol-flow)
-   - [Where Does MCP Fit In?](#10-where-does-mcp-model-context-protocol-fit-in)
-   - [Agent-to-Merchant Mapping](#11-agent-to-merchant-mapping-does-each-merchant-have-an-agent)
-   - [Who Maintains the Ecosystem?](#12-who-maintains-the-entire-ecosystem)
+1. [What This Project Is](#1-what-this-project-is)
+2. [Architecture](#2-architecture)
+3. [Transaction Lifecycle](#3-transaction-lifecycle)
+4. [Merchant Discovery and Multi-Merchant Search](#4-merchant-discovery-and-multi-merchant-search)
+5. [Signatures: Who Signs What, With What Payload](#5-signatures-who-signs-what-with-what-payload)
+6. [Non-Repudiation and Multi-User Agents](#6-non-repudiation-and-multi-user-agents)
+7. [Security Between Agents and MITM Prevention](#7-security-between-agents-and-mitm-prevention)
+8. [Signature Verification by the Auditor](#8-signature-verification-by-the-auditor)
+9. [Immutability and Idempotency](#9-immutability-and-idempotency)
+10. [Compliance and Audit Trail](#10-compliance-and-audit-trail)
+11. [Multi-Protocol Ecosystem: UCP, A2A, and MCP](#11-multi-protocol-ecosystem-ucp-a2a-and-mcp)
 
 ---
 
-## Project Overview
+## 1. What This Project Is
 
-This project is a Proof of Concept (PoC) that implements an **enterprise-grade agentic commerce system** built around two complementary protocols:
-
-- **AP2 (Agent Payment Protocol)** — provides the trust layer: immutable mandate ledger, cryptographic signatures, and audit trails.
-- **UCP (Universal Commerce Protocol)** — provides the commerce flow: merchant discovery, product search, checkout sessions, and order management via REST APIs.
-
-The system is built with **Python 3.12+**, **FastAPI**, **Motor** (async MongoDB driver), and **Pydantic** for data validation. **MongoDB Atlas** serves as the central, immutable ledger (System of Record) for all AP2 transactions.
-
-The repository contains two main components:
+This repository is a **Proof of Concept (PoC)** demonstrating how an AP2 Mandate Ledger backed by **MongoDB Atlas** can serve as the immutable System of Record for agentic commerce. It is built with Python 3.12+, FastAPI, Motor (async MongoDB), and Pydantic.
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| **Mandate Ledger Service** | `mandate_ledger_service/` | Core immutable ledger API (FastAPI) backed by MongoDB |
-| **Example Flows** | `example/` | Two demo implementations — A2A-based `card_flow` and REST-based `ucp_flow` |
+| **Mandate Ledger Service** | `mandate_ledger_service/` | Core append-only ledger API with authentication, state machine, and audit trail |
+| **Card Flow Example** | `example/card_flow/` | Multi-agent demo using **A2A** protocol between agents |
+| **UCP Flow Example** | `example/ucp_flow/` | REST-based demo using **UCP** between shopper agent and merchant server |
+| **Shared AP2 Types** | `example/src/ap2/types/` | Pydantic models for IntentMandate, CartMandate, PaymentMandate |
+| **Common Utilities** | `example/src/common/` | `MandateLedgerClient`, A2A helpers, validation |
 
 ---
 
-## Protocol Definitions
-
-### AP2 — Agent Payment Protocol
-
-AP2 is the **trust and authorization layer**. It defines three types of mandates that form a cryptographically signed chain of authorization for every transaction:
-
-| Mandate Type | Purpose | Lifecycle |
-|-------------|---------|-----------|
-| **IntentMandate** | Captures the user's shopping intent | `created` → `signed` → `expired`/`cancelled` |
-| **CartMandate** | The merchant's product offer with pricing | `proposed` → `updated` → `signed` → `completed`/`expired`/`cancelled` |
-| **PaymentMandate** | The user's payment authorization | `created` → `signed` → `authorized` → `captured` → `settled`/`failed` |
-
-Each mandate is stored as an **immutable, versioned ledger entry** in MongoDB. Every state change creates a new version — old versions are never modified or deleted.
-
-### UCP — Universal Commerce Protocol
-
-UCP is the **commerce interaction layer**. It standardizes how AI shopping agents discover and transact with merchants through:
-
-- **`/.well-known/ucp.json`** — a standard discovery endpoint (like a digital business card)
-- **Capability negotiation** — agents check feature compatibility before transacting
-- **REST-based checkout flow** — standard HTTP endpoints for cart, payment, and order management
-
-**The two protocols are complementary**: UCP defines *how* agents discover and transact; AP2 provides *proof* of authorization and an immutable audit trail.
-
----
-
-## Architecture
+## 2. Architecture
 
 ```
 ┌──────────────────────┐                    ┌──────────────────────┐
-│   Consumer Agent     │      UCP REST      │   Merchant Server    │
+│   Consumer Agent     │   UCP REST / A2A   │   Merchant Server    │
 │   (Shopper)          │◄──────────────────►│   (e.g. Amazon)      │
 │                      │   /.well-known     │                      │
 │   NO database        │   /api/checkout    │   HAS AP2 Ledger     │
@@ -101,545 +66,43 @@ UCP is the **commerce interaction layer**. It standardizes how AI shopping agent
                                             └──────────────────────┘
 ```
 
-The Mandate Ledger Service acts as a **protective middleware** between agents and MongoDB, organized in three layers:
+The Mandate Ledger Service sits between agents and MongoDB, organized in three layers:
 
 | Layer | Responsibility | Key Files |
 |-------|---------------|-----------|
-| **Authentication Layer** | API key validation via bcrypt, RBAC, bootstrap auth | `api/dependencies.py`, `services/auth_service.py` |
-| **Business Logic Layer** | State machine validation, idempotency, hashing, signatures | `core/state_machine.py`, `core/hashing.py`, `services/` |
-| **Data Access Layer** | MongoDB operations, append-only inserts, aggregation queries | `repositories/`, `db/mongodb.py` |
+| **Authentication** | API key validation (bcrypt), RBAC, scoped permissions | `api/dependencies.py`, `services/auth_service.py` |
+| **Business Logic** | State machine, idempotency, hashing, signatures | `core/state_machine.py`, `core/hashing.py`, `services/` |
+| **Data Access** | MongoDB append-only inserts, aggregation queries | `repositories/`, `db/mongodb.py` |
 
 ---
 
-## Transaction Lifecycle
+## 3. Transaction Lifecycle
 
-A complete UCP + AP2 transaction follows these steps:
+A complete purchase flows through these steps (combining UCP discovery with AP2 ledger writes):
 
-| Step | Actor | Action | AP2 Ledger |
-|------|-------|--------|------------|
+| Step | Actor | Action | Ledger Effect |
+|------|-------|--------|---------------|
 | 1 | Shopper Agent | Fetches `/.well-known/ucp.json` from merchant | — |
-| 2 | Shopper Agent | Checks if merchant supports `dev.ucp.shopping.ap2_mandate` capability | — |
-| 3 | Shopper Agent | Sends `POST /api/checkout` with items and signed intent | — |
-| 4 | Merchant Server | Creates **IntentMandate** with shopper's signature | **Created** |
-| 5 | Merchant Server | Builds cart, signs it with merchant key (`merchant_authorization`) | — |
-| 6 | Merchant Server | Returns checkout response with signed cart | — |
+| 2 | Shopper Agent | Verifies `dev.ucp.shopping.ap2_mandate` capability | — |
+| 3 | Shopper Agent | `POST /api/checkout` with items + **signed intent** | — |
+| 4 | Merchant | Creates **IntentMandate** (with shopper's intent signature) | IntentMandate v1 created |
+| 5 | Merchant | Builds cart, signs it with **merchant private key** | — |
+| 6 | Merchant | Returns checkout response with signed cart | — |
 | 7 | Shopper Agent | Presents cart to user, obtains consent | — |
-| 8 | Shopper Agent | Sends `POST /api/checkout/{id}/confirm` with cart signature | — |
-| 9 | Merchant Server | Writes **CartMandate** with both signatures (shopper + merchant) | **Created (signed)** |
-| 10 | Shopper Agent | Sends `POST /api/checkout/{id}/complete` with payment signature | — |
-| 11 | Merchant Server | Writes **PaymentMandate** with shopper's payment signature | **Created (authorized)** |
-| 12 | Merchant Server | Processes payment, creates **Payment Record** linking all mandates | **Payment recorded** |
-| 13 | Merchant Server | Returns order confirmation and receipt | — |
+| 8 | Shopper Agent | `POST /api/checkout/{id}/confirm` with **cart signature** | — |
+| 9 | Merchant | Creates **CartMandate** with **both signatures** | CartMandate v1 created (status: signed) |
+| 10 | Shopper Agent | `POST /api/checkout/{id}/complete` with **payment signature** | — |
+| 11 | Merchant | Creates **PaymentMandate** (with shopper's payment signature) | PaymentMandate v1 created (status: authorized) |
+| 12 | Merchant | Processes payment, creates **Payment Record** linking all 3 mandates | Payment record created |
+| 13 | Merchant | Returns order confirmation and receipt | — |
 
 ---
 
-## Key Questions Answered
+## 4. Merchant Discovery and Multi-Merchant Search
 
-### 1. How does merchant discovery happen? (What is the 'well known'?)
+### Who Is Responsible for Discovery?
 
-Merchant discovery in this project uses the **UCP Well-Known Discovery Endpoint** — a standardized URL at `/.well-known/ucp.json` that any shopping agent can fetch to learn about a merchant's capabilities.
-
-**Implementation:** The merchant server exposes this endpoint via FastAPI in `example/ucp_flow/merchant_server/well_known.py`:
-
-```python
-@router.get("/.well-known/ucp.json", response_model=UCPProfile)
-async def ucp_discovery():
-    return UCPProfile(
-        name="Demo UCP Merchant",
-        ucp_version="2026-01-11",
-        capabilities=[
-            UCPCapability(name="dev.ucp.shopping.checkout", version="2026-01-11"),
-            UCPCapability(
-                name="dev.ucp.shopping.ap2_mandate",
-                version="2026-01-11",
-                extends="dev.ucp.shopping.checkout"
-            ),
-            UCPCapability(name="dev.ucp.shopping.order", version="2026-01-11")
-        ],
-        services={"shopping": UCPService(transport="rest", endpoint="/api")},
-        payment_handlers=["CARD", "GOOGLE_PAY"],
-        signing_keys=[MERCHANT_SIGNING_KEY]
-    )
-```
-
-The response is a `UCPProfile` JSON document containing:
-
-| Field | Purpose |
-|-------|---------|
-| `name` | Human-readable merchant name |
-| `ucp_version` | Protocol version for compatibility |
-| `capabilities` | List of supported features (checkout, AP2 mandates, orders) |
-| `services` | Transport and endpoint information (REST, gRPC, etc.) |
-| `payment_handlers` | Accepted payment methods (CARD, GOOGLE_PAY) |
-| `signing_keys` | JWK public keys for verifying the merchant's signatures |
-
-**The shopper agent** fetches this profile in `example/ucp_flow/shopper_agent/ucp_client.py`:
-
-```python
-async def discover(self) -> dict:
-    async with httpx.AsyncClient(timeout=self.timeout) as client:
-        resp = await client.get(f"{self.merchant_url}/.well-known/ucp.json")
-        resp.raise_for_status()
-        self._capabilities = resp.json()
-        return self._capabilities
-
-def supports_ap2_mandate(self) -> bool:
-    caps = self._capabilities.get("capabilities", [])
-    return any(c.get("name") == "dev.ucp.shopping.ap2_mandate" for c in caps)
-```
-
-The shopper first discovers the merchant, then checks if AP2 mandates are supported via the `dev.ucp.shopping.ap2_mandate` capability. If supported, the full AP2 signature flow is activated. If not, a simpler checkout flow is used.
-
-A secondary endpoint at `/.well-known/ucp.json/keys` returns just the signing keys in JWK Set format for signature verification.
-
-**Analogy:** The `/.well-known/ucp.json` is equivalent to an `agent.json` file in the A2A protocol — both serve as machine-readable identity cards that enable automatic agent-to-agent discovery.
-
----
-
-### 2. How is the user signature created, and how can it be verified?
-
-The project implements a **multi-party signature system** where both shopper and merchant agents sign mandates at different stages of the transaction.
-
-#### Signature Creation
-
-Signatures are modeled by the `SignatureEntry` Pydantic class in `mandate_ledger_service/src/models/mandate.py`:
-
-```python
-class SignatureEntry(BaseModel):
-    signature: str       # The cryptographic signature (hex, JWT, or verifiable credential)
-    signer_id: str       # Agent ID that created this signature
-    signer_type: str     # Type of agent (shopping_agent, merchant_agent, etc.)
-    algorithm: str       # Signature algorithm (EdDSA, ES256, RS256, SHA256, JWT)
-    signed_at: datetime  # UTC timestamp
-    metadata: dict       # Additional metadata (key ID, verification URL, etc.)
-```
-
-**Shopper-side signature creation** (in `example/ucp_flow/shopper_agent/ucp_client.py`):
-
-```python
-def create_signature(data: dict, signer_id: str = "ucp_shopper") -> dict:
-    data_str = json.dumps(data, sort_keys=True)
-    data_hash = hashlib.sha256(data_str.encode()).hexdigest()
-    return {
-        "signature": f"sig_{data_hash[:32]}",
-        "signer_id": signer_id,
-        "signer_type": "consumer-agent",
-        "algorithm": "SHA256",
-        "signed_at": datetime.now(timezone.utc).isoformat()
-    }
-```
-
-The shopper creates signatures at three points:
-1. **Intent signature** — signs the shopping intent when creating a checkout
-2. **Cart signature** — signs the cart contents after reviewing and consenting
-3. **Payment signature** — signs the payment authorization
-
-**Merchant-side signature creation** (in `example/ucp_flow/merchant_server/checkout.py`):
-
-```python
-def _create_merchant_signature(data: dict) -> dict:
-    return {
-        "signature": _FAKE_JWT,  # In production: real JWT signed with merchant's private key
-        "signer_id": "ucp_merchant",
-        "signer_type": "merchant-agent",
-        "algorithm": "JWT",
-        "signed_at": datetime.now(timezone.utc).isoformat()
-    }
-```
-
-The merchant signs the cart with `merchant_authorization` (a JWT in production, a mock in this PoC).
-
-#### Signature Storage and Accumulation
-
-When mandates are written to the ledger, signatures from both parties are included. The `MandateService.sign_mandate()` method in `mandate_ledger_service/src/services/mandate_service.py` accumulates signatures across versions:
-
-```python
-async def sign_mandate(self, entity_id, signed_by_agent, agent_type, ...):
-    existing_signatures = getattr(current, 'signatures', [])
-    new_signatures = existing_sigs_dicts + [signature_entry]
-    return await self.create_mandate_version(
-        ..., signatures=new_signatures
-    )
-```
-
-The `CartMandate` is written with both signatures simultaneously:
-
-```python
-cart_entry = await ledger_client.create_mandate(
-    mandate_type="CartMandate",
-    mandate_data=cart_mandate.model_dump(),
-    initial_signatures=[request.cart_signature, merchant_signature],
-    initial_status="signed",
-    ...
-)
-```
-
-#### Signature Verification
-
-Verification happens at multiple levels:
-
-1. **Structural verification** — the auditor agent (`example/ucp_flow/auditor_agent/tools.py`) verifies that all three mandates have valid signatures:
-
-```python
-signature_checks = {
-    "buyer_intent_signature": bool(intent_mandate.get("signatures")),
-    "seller_cart_signature": bool(cart_mandate.get("signatures")),
-    "buyer_payment_signature": bool(payment_mandate.get("signatures"))
-}
-all_signatures_valid = all(signature_checks.values())
-```
-
-2. **Key-based verification** — the merchant's public signing keys are published in `/.well-known/ucp.json/keys` as JWK entries (EC P-256 curve), enabling any party to verify JWT signatures using the `kid`, `kty`, `crv`, `x`, `y` parameters.
-
-3. **Hash chain verification** — each ledger version's integrity is independently verifiable via SHA-256 hashes (see [Immutability](#3-how-is-immutability-ensured) below).
-
-> **Note:** This PoC uses mock signatures (SHA-256 hashes as signature stand-ins). In production, proper cryptographic signing would use JWT/SD-JWT with RS256 or EdDSA algorithms, and verification would use the JWK public keys from the well-known endpoint.
-
----
-
-### 3. How is immutability ensured?
-
-Immutability is the **foundational design principle** of the Mandate Ledger Service. It is enforced through multiple reinforcing mechanisms:
-
-#### A. Append-Only Architecture
-
-The ledger only supports **INSERT** operations. There are no UPDATE or DELETE endpoints exposed by the API. The only write operations are:
-
-- `POST /api/v1/mandates` — creates a new mandate (version 1)
-- `POST /api/v1/payments` — creates a payment record
-
-The `mandates.py` route file explicitly documents the removal of mutation endpoints:
-
-```python
-# REMOVED: PUT /{entity_id} endpoint
-# The ledger is immutable - use POST /mandates with initial_signatures for all mandate creation
-
-# REMOVED: POST /{entity_id}/sign endpoint
-# Use pre-signed mandate creation instead
-```
-
-When a mandate's status changes, a **new version is appended** to the ledger — the original version remains untouched. This is handled in `MandateRepository.append_ledger_entry()`, which always inserts a new document rather than modifying existing ones.
-
-#### B. Blockchain-Style Hash Chaining
-
-Every ledger entry contains cryptographic hash links forming an integrity chain, defined in `MandateLedgerEntry`:
-
-```python
-class MandateLedgerEntry(BaseModel):
-    parent_version: Optional[int]       # Version number of parent (None for v1)
-    parent_version_hash: Optional[str]  # SHA-256 of parent version's canonical JSON
-    current_version_hash: str           # SHA-256 of this version's canonical JSON
-```
-
-The hash computation in `core/hashing.py` uses **canonical JSON** (sorted keys, consistent encoding) to produce deterministic SHA-256 hashes:
-
-```python
-def compute_mandate_hash(mandate_entry: dict) -> str:
-    hashable_entry = {
-        k: v for k, v in mandate_entry.items()
-        if k not in ['parent_version_hash', 'current_version_hash', '_id']
-    }
-    return compute_sha256(hashable_entry)
-```
-
-Chain integrity can be verified with `verify_chain_integrity()`:
-
-```python
-def verify_chain_integrity(parent_entry: dict, child_entry: dict) -> bool:
-    if child_entry.get("parent_version") != parent_entry.get("version"):
-        return False
-    if child_entry.get("parent_version_hash") != parent_entry.get("current_version_hash"):
-        return False
-    return True
-```
-
-Any tampering with a historical record would break the hash chain, making modifications detectable.
-
-#### C. Version Conflict Detection
-
-The service uses **optimistic locking** to prevent concurrent writes from corrupting the version chain. When creating a new version, the `MandateService.create_mandate_version()` method:
-
-1. Reads the current version number and hash
-2. Attempts to write the next version referencing the current one
-3. On conflict (another write happened first), retries with exponential backoff (up to 3 attempts)
-
-```python
-for attempt in range(max_retries):
-    try:
-        current = await self.mandate_repo.get_current_state(entity_id)
-        new_entry = await self.mandate_repo.append_ledger_entry(
-            parent_version=current.current_version,
-            parent_version_hash=current.current_version_hash, ...
-        )
-        return new_entry
-    except VersionConflictError:
-        await asyncio.sleep(0.1 * (2 ** attempt))
-```
-
-#### D. State Machine Enforcement
-
-The `core/state_machine.py` enforces **unidirectional state transitions**. Terminal states (expired, cancelled, failed) have no outgoing transitions:
-
-```python
-CART_MANDATE_TRANSITIONS = {
-    MandateStatus.PROPOSED: [UPDATED, SIGNED, EXPIRED, CANCELLED],
-    MandateStatus.UPDATED:  [SIGNED, EXPIRED, CANCELLED],
-    MandateStatus.SIGNED:   [COMPLETED, EXPIRED, CANCELLED],
-    MandateStatus.COMPLETED:[REFUNDED],
-    MandateStatus.REFUNDED: [],   # Terminal
-    MandateStatus.EXPIRED:  [],   # Terminal
-    MandateStatus.CANCELLED:[]    # Terminal
-}
-```
-
-States cannot go backwards (e.g., `signed` → `proposed` is rejected), preventing retroactive changes.
-
-#### E. Consistency Verification
-
-The `ConsistencyService` performs integrity scans across the ledger, checking for:
-
-- Missing ledger entries
-- Version gaps (non-sequential version numbers)
-- Broken hash chains
-- Hash mismatches
-
-Issues are logged to a `consistency_checks` collection with severity levels (critical, error, warning).
-
-#### F. Auditor Agent Enforcement
-
-The auditor agent (`example/ucp_flow/auditor_agent/tools.py`) includes a `test_mandate_integrity()` tool that actively attempts prohibited operations (DELETE, UPDATE) and confirms they are rejected:
-
-```python
-async def test_mandate_integrity(identifier, operation, details):
-    if operation == "delete":
-        results["rejection_reason"] = "DELETE operations are not supported on the mandate ledger"
-    elif operation in ["update", "modify"]:
-        results["rejection_reason"] = "UPDATE/MODIFY operations cannot change historical records"
-```
-
----
-
-### 4. How is idempotency ensured?
-
-Idempotency is implemented end-to-end through a dedicated subsystem involving a service, repository, MongoDB collection, and HTTP header convention.
-
-#### Mechanism
-
-1. **Client sends `X-Idempotency-Key` header** with each write request. The `MandateLedgerClient` includes this header automatically:
-
-```python
-def _get_headers(self, idempotency_key=None) -> dict:
-    headers = {"Authorization": f"Bearer {self.api_key}", ...}
-    if idempotency_key:
-        headers["X-Idempotency-Key"] = idempotency_key
-    return headers
-```
-
-2. **Server checks for duplicate** before processing. In the `create_mandate` route (`api/routes/mandates.py`):
-
-```python
-if x_idempotency_key:
-    idempotency_repo = IdempotencyRepository()
-    idempotency_record = await idempotency_repo.check_idempotency_key(
-        idempotency_key=x_idempotency_key,
-        agent_id=agent.agent_id
-    )
-if idempotency_record:
-    response.status_code = idempotency_record.response_status_code
-    return idempotency_record.response_body  # Return cached response
-```
-
-3. **After processing**, the response is stored alongside the key for future deduplication:
-
-```python
-await idempotency_repo.store_idempotency_record(
-    idempotency_key=x_idempotency_key,
-    agent_id=agent.agent_id,
-    request_method="POST",
-    request_path="/api/v1/mandates",
-    request_body=request_body.model_dump(),
-    response_status=201,
-    response_body=result.model_dump()
-)
-```
-
-4. **Records expire automatically** via MongoDB TTL indexes (default: 24 hours), preventing indefinite storage growth.
-
-#### Idempotency Key Scoping
-
-Keys are scoped to the **agent ID**, meaning two different agents can use the same idempotency key without collision:
-
-```python
-record = await self.repo.find_one({
-    "idempotency_key": idempotency_key,
-    "agent_id": agent_id,
-    "expires_at": {"$gt": datetime.now(timezone.utc)}
-})
-```
-
-#### Usage in the UCP Flow
-
-The UCP checkout module generates deterministic idempotency keys based on checkout and mandate identifiers to prevent duplicate ledger writes during retries:
-
-```python
-intent_entry = await ledger_client.create_mandate(
-    ..., idempotency_key=f"intent_{checkout_id}", ...
-)
-cart_entry = await ledger_client.create_mandate(
-    ..., idempotency_key=f"cart_signed_{request.cart_id}", ...
-)
-payment_entry = await ledger_client.create_mandate(
-    ..., idempotency_key=f"payment_{payment_mandate_id}", ...
-)
-```
-
-This ensures that if any step fails and is retried, the exact same ledger entry is returned rather than creating a duplicate.
-
-#### Higher-Level Convenience
-
-The `IdempotencyService` provides a `check_and_store()` method that wraps the full check-process-store cycle:
-
-```python
-async def check_and_store(self, idempotency_key, agent_id, ..., process_fn):
-    existing = await self.check_request(idempotency_key, agent_id)
-    if existing:
-        return existing.response_body, existing.response_status, True  # Cached
-    status_code, response_body = await process_fn()
-    await self.store_result(...)
-    return response_body, status_code, False  # Fresh
-```
-
----
-
-### 5. How is compliance ensured?
-
-Compliance is ensured through a multi-layered approach covering authentication, authorization, audit trails, data integrity, and role-based access control.
-
-#### A. Complete Audit Trail
-
-Every operation is logged in the `audit_logs` MongoDB collection via `AuditRepository`. Each audit entry captures:
-
-| Field | Content |
-|-------|---------|
-| `event_type` | Categorized event (`mandate.created`, `payment.authorized`, `auth.api_key_created`, etc.) |
-| `entity_id` | The affected mandate, payment, or API key |
-| `actor_id` | Which agent performed the action |
-| `actor_type` | The type of agent (shopping-agent, merchant-agent, admin) |
-| `details` | Action description and before/after changes |
-| `timestamp` | UTC timestamp |
-| `ip_address` | Request origin (when available) |
-| `transaction_id` | Groups related events across mandates |
-
-The audit trail is queryable by entity, actor, event type, time range, and transaction ID. Every mandate creation, status transition, signing, and cancellation generates an audit entry:
-
-```python
-await self.audit_repo.create_audit_log(
-    event_type=EventType.MANDATE_CREATED,
-    entity_id=entity_id,
-    entity_type=entity_type.value,
-    entity_version=1,
-    actor_id=created_by_agent,
-    actor_type=agent_type,
-    action=f"Created {entity_type.value} mandate",
-    ...
-)
-```
-
-#### B. Authentication and RBAC
-
-All API endpoints require authentication via API keys. The system supports:
-
-- **Bearer token** in `Authorization` header
-- **API key** in `X-API-Key` header
-- **Bootstrap admin key** for initial setup (disabled after key provisioning)
-
-API keys are:
-- Generated with a `mlsk_` prefix and 32 random hex characters
-- Stored as **bcrypt hashes** (never plaintext)
-- Associated with specific agent IDs, types, and permission scopes
-- Subject to expiration and revocation
-
-```python
-async def authenticate(self, api_key, required_scopes=None):
-    key_record = await self.auth_repo.get_api_key_by_prefix(key_prefix)
-    if not verify_api_key(api_key, key_record.key_hash):
-        raise InvalidApiKeyError(key_prefix)
-    # Check revocation, expiration, and scope requirements...
-```
-
-Permission scopes control access to specific operations: `mandate:read`, `mandate:write`, `audit:read`, `auth:manage`, etc.
-
-#### C. Rate Limiting
-
-Every endpoint is rate-limited per agent. The `RateLimitRepository` tracks request counts in sliding time windows (default: 60 requests/minute). Exceeded limits return HTTP 429 with `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `Retry-After` headers.
-
-#### D. Compliance Agent Role
-
-The system supports a dedicated `compliance-agent` role type (defined in the agent type naming conventions in `models/enums.py`). This role is designed for regulatory compliance verification agents that can:
-
-- Query the full audit trail for any entity or transaction
-- Verify signature presence on all mandates
-- Run consistency checks across the ledger
-- Validate hash chain integrity
-
-The **Auditor Agent** implementation (in both `example/ucp_flow/auditor_agent/` and `example/src/roles/auditor_agent/`) demonstrates this role with tools for:
-
-1. **`check_ledger_by_payment_id`** — verifies a payment record exists and that all three mandates (Intent, Cart, Payment) have valid signatures
-2. **`get_mandate_history`** — retrieves the complete version timeline for a transaction, showing every state change
-3. **`test_mandate_integrity`** — attempts prohibited operations (DELETE, UPDATE) and confirms they are rejected
-
-#### E. Non-Repudiation
-
-The signature system ensures **non-repudiation** — neither party can deny their participation:
-
-- The shopper's signature on the IntentMandate proves they initiated the purchase
-- Both signatures on the CartMandate prove mutual agreement on terms and pricing
-- The shopper's payment signature proves they authorized the specific payment
-- All signatures are permanently stored in the immutable ledger with timestamps and agent identifiers
-
-#### F. Data Integrity Monitoring
-
-The `ConsistencyService` provides ongoing data integrity monitoring:
-
-- **On-demand checks** for specific mandates (`check_mandate_consistency`)
-- **Full ledger scans** to detect version gaps, broken chains, or hash mismatches (`run_full_scan`)
-- **Health reports** with health scores and severity-classified issues (`get_health_report`)
-- All consistency check results are logged in the audit trail
-
-#### G. Financial Records Retention
-
-Because the ledger is append-only and immutable:
-
-- All transaction records are permanently retained (no DELETE operations)
-- Historical records cannot be altered after the fact
-- Every change is traceable to a specific agent, timestamp, and version
-- The complete chain of authorization (intent → cart → payment) is preserved as a unit via `transaction_id`
-
-This satisfies common regulatory requirements for financial records retention and provides the evidence trail needed for dispute resolution.
-
----
-
-## Summary Table
-
-| Concern | Mechanism | Key Implementation |
-|---------|-----------|-------------------|
-| **Merchant Discovery** | `/.well-known/ucp.json` endpoint | `merchant_server/well_known.py` |
-| **Signatures** | SHA-256/JWT signatures per agent, stored in ledger | `ucp_client.py`, `models/mandate.py` |
-| **Immutability** | Append-only inserts, hash chaining, state machine, no DELETE/UPDATE | `repositories/mandate_repository.py`, `core/hashing.py` |
-| **Idempotency** | `X-Idempotency-Key` header + MongoDB deduplication | `services/idempotency_service.py`, `api/routes/mandates.py` |
-| **Compliance** | Audit logs, RBAC, signatures, consistency checks, auditor agent | `repositories/audit_repository.py`, `services/auth_service.py` |
-
----
-
-## Extended Questions: Multi-Merchant Ecosystem, Protocol Interactions, and MCP
-
-### 6. Multi-Merchant Discovery: Who Is Responsible?
-
-#### The Decentralized Model
-
-UCP follows a **decentralized, merchant-driven discovery model** — there is no central registry where merchants must sign up. Instead, **each merchant is responsible for publishing its own discovery profile** at its domain.
-
-The pattern works like DNS or SSL certificates: every merchant independently hosts a standardized endpoint at `/.well-known/ucp.json` (or `/.well-known/ucp` per the specification) on its own domain. This is analogous to how websites serve `robots.txt` or `/.well-known/openid-configuration` — no central authority registers them; they just follow the standard.
+UCP follows a **decentralized model** — there is no central registry. **Each merchant publishes its own profile** at `/.well-known/ucp.json` on its domain, like `robots.txt` or `/.well-known/openid-configuration`:
 
 ```
 amazon.com        → GET https://amazon.com/.well-known/ucp.json
@@ -648,17 +111,10 @@ walmart.com       → GET https://walmart.com/.well-known/ucp.json
 local-bakery.com  → GET https://local-bakery.com/.well-known/ucp.json
 ```
 
-#### What Each Merchant Must Do
-
-Each merchant that wants to participate in the UCP ecosystem must:
-
-1. **Implement a UCP-compliant server** — expose the `/.well-known/ucp.json` endpoint with their capabilities, services, payment handlers, and signing keys.
-2. **Implement the declared capabilities** — the REST endpoints for product search, checkout, orders, etc.
-3. **(Optional) Integrate AP2** — if the merchant wants signed, auditable transactions, they declare the `dev.ucp.shopping.ap2_mandate` capability and integrate with a Mandate Ledger Service.
-
-In this project, the merchant server implementation in `example/ucp_flow/merchant_server/` demonstrates exactly this — a FastAPI server that publishes its profile and implements UCP endpoints.
-
-#### Who Finds the Merchants?
+Each merchant must:
+1. Expose a `/.well-known/ucp.json` endpoint declaring capabilities, payment handlers, and signing keys
+2. Implement the declared capabilities (product search, checkout, orders)
+3. Optionally declare `dev.ucp.shopping.ap2_mandate` if they integrate AP2
 
 The **platform or consumer agent** is responsible for knowing which merchant domains to query. This works through several mechanisms:
 
@@ -682,70 +138,13 @@ In a production system, the **platform** (e.g., Google, a shopping aggregator) w
 
 While the **UCP specification itself** does not mandate a central registry, **platforms** that implement UCP (like Google) do offer **integration paths** for merchants to register:
 
-- **Google Merchant Center** — merchants register their product catalogs, which Google then surfaces in conversational AI experiences
-- **Developer consoles** — merchants configure their UCP endpoints and verify domain ownership
-- **Partner programs** — large retailers may have direct integration partnerships
+- **Google Merchant Center:** merchants register their product catalogs, which Google then surfaces in conversational AI experiences
+- **Developer consoles:** merchants configure their UCP endpoints and verify domain ownership
+- **Partner programs:** large retailers may have direct integration partnerships
 
-This is similar to how any website can serve content (decentralized), but search engines (Google, Bing) maintain indexes for discoverability (centralized surfacing layer).
+This is similar to how any website serves content in a decentralized manner, while search engines like Google and Bing create centralized indexes for easier discoverability. Although UCP does not require a centralized registry, platforms such as Google provide integration options (e.g., Merchant Center, developer consoles) that function as a centralized layer for surfacing information on top of the decentralized framework.
 
----
-
-### 7. How Does UCP Ensure That Systems Like ChatGPT or Gemini Can Make Purchases?
-
-UCP is designed as an **open, transport-agnostic protocol** that any AI system can implement. It guarantees interoperability through several mechanisms:
-
-#### A. Open Specification
-
-UCP is published as an **open standard** (at [ucp.dev](https://ucp.dev)), meaning any AI platform — ChatGPT (OpenAI), Gemini (Google), Claude (Anthropic), or others — can read the specification and build a compliant client. The protocol does not require any proprietary SDK or platform lock-in.
-
-#### B. Multiple Transport Bindings
-
-UCP supports **three transport methods** that a business can expose simultaneously in its `/.well-known/ucp.json` profile:
-
-| Transport | Best For | How It Works |
-|-----------|----------|-------------|
-| **REST** | Any HTTP-capable client | Standard HTTP/JSON endpoints — any programming language can call these |
-| **MCP (Model Context Protocol)** | LLM-native tool calling | UCP capabilities map 1:1 to MCP tools — the LLM sees them as callable functions |
-| **A2A (Agent-to-Agent)** | Multi-agent orchestration | Agents communicate via the A2A protocol using Agent Cards |
-
-A merchant's profile can declare all three simultaneously:
-
-```json
-{
-  "services": {
-    "shopping": {
-      "rest": { "endpoint": "https://merchant.com/api/ucp" },
-      "mcp": { "endpoint": "https://merchant.com/mcp" },
-      "a2a": { "endpoint": "https://merchant.com/.well-known/agent.json" }
-    }
-  }
-}
-```
-
-This means:
-- **ChatGPT** could use MCP tools (OpenAI supports MCP) or plain REST calls
-- **Gemini** could use A2A (Google's native protocol) or MCP or REST
-- **Claude** could use MCP (Anthropic created MCP) or REST
-- **Any custom agent** could use REST (universal HTTP)
-
-#### C. Capability Negotiation
-
-Before any transaction, the consumer agent and merchant negotiate capabilities. If a merchant supports `dev.ucp.shopping.ap2_mandate` but the consumer platform doesn't, they fall back to simpler checkout without AP2 signatures. This ensures backward compatibility across different AI systems with varying levels of sophistication.
-
-#### D. The Platform's Responsibility
-
-Each AI platform (ChatGPT, Gemini, Claude, etc.) must implement:
-
-1. A **UCP client** that can discover merchants and call their endpoints
-2. **User consent flows** — presenting carts, confirming payments
-3. **Payment method handling** — managing credentials securely
-4. **(Optional) AP2 signature creation** — if they want non-repudiable transactions
-
-The platform acts as the **consumer-side agent**, orchestrating the shopping flow on behalf of the user.
-
----
-
-### 8. Multi-Merchant Product Search: How Does a User Find "Speakers" Across Merchants?
+### How Multi-Merchant Product Search Works
 
 When a user asks "I want to buy speakers," the system must search across multiple merchants. This happens in layers:
 
@@ -759,8 +158,8 @@ User: "I want to buy speakers"
 │   Platform / AI Agent   │  (ChatGPT, Gemini, etc.)
 │                         │
 │  1. Identify candidate  │
-│     merchant domains    │──────────────────────────────────────┐
-│                         │                                      │
+│     merchant domains    │──────────┬─────────────┬─────────────┐
+│                         │          │             │             │
 │  2. Discover each       │     ┌──────────┐  ┌──────────┐  ┌──────────┐
 │     merchant via        │────►│ Amazon   │  │  eBay    │  │ Walmart  │
 │     /.well-known/ucp    │     │ .well-   │  │ .well-   │  │ .well-   │
@@ -792,113 +191,520 @@ User: "I want to buy speakers"
 | 6 | **User** | Selects a product and merchant |
 | 7 | **Platform** | Initiates the checkout flow **only** with the chosen merchant |
 
-#### In This Project
 
-This PoC demonstrates a **single-merchant flow** (one merchant server at `localhost:8004`). The product search uses Gemini LLM to generate realistic product options within that single merchant's catalog:
+This PoC demonstrates a single-merchant flow. In production, the platform layer handles aggregation.
+
+### Implementation in This Project
+
+The merchant publishes its profile in `example/ucp_flow/merchant_server/well_known.py`. The shopper agent discovers it in `example/ucp_flow/shopper_agent/ucp_client.py`:
 
 ```python
-@router.get("/products")
-async def search_products(q: str, max_results: int = 3):
-    llm_client = genai.Client()
-    prompt = f"Based on the user's request for '{q}', generate {max_results} products..."
-    llm_response = llm_client.models.generate_content(
-        model="gemini-2.5-flash", contents=prompt, ...
-    )
-    return ProductSearchResponse(products=llm_response.parsed, query=q)
-```
+async def discover(self) -> dict:
+    resp = await client.get(f"{self.merchant_url}/.well-known/ucp.json")
+    self._capabilities = resp.json()
+    return self._capabilities
 
-In a **production multi-merchant system**, the platform layer would:
-- Maintain a list of known UCP-compliant merchant domains
-- Query each merchant's product search endpoint in parallel
-- Merge, deduplicate, and rank results
-- Handle differing response formats using UCP's standardized schema
+def supports_ap2_mandate(self) -> bool:
+    return any(c.get("name") == "dev.ucp.shopping.ap2_mandate"
+               for c in self._capabilities.get("capabilities", []))
+```
 
 ---
 
-### 9. Service Interaction: The Complete Multi-Protocol Flow
+## 5. Signatures: Who Signs What, With What Payload
 
-The following diagram shows how all services interact in a complete agentic commerce flow:
+### Yes, Both Parties Sign
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                        USER                                  │
-│  "I want to buy Bluetooth speakers"                          │
-└───────────────────────────┬──────────────────────────────────┘
-                            │
-                            ▼
-┌──────────────────────────────────────────────────────────────┐
-│                 AI PLATFORM (Gemini, ChatGPT, etc.)          │
-│                                                              │
-│  ┌──────────────────┐   ┌─────────────────┐                  │
-│  │ Shopping Agent   │   │ Auditor Agent   │                  │
-│  │ (Consumer-side)  │   │ (Compliance)    │                  │
-│  │                  │   │                 │                  │
-│  │ Uses: MCP tools  │   │ Uses: Ledger    │                  │
-│  │   or REST calls  │   │   API queries   │                  │
-│  └────────┬─────────┘   └────────┬────────┘                  │
-│           │                      │                           │
-└───────────┼──────────────────────┼───────────────────────────┘
-            │                      │
-    ┌───────┼──────────────────────┼──────────────────────┐
-    │       │      UCP REST / A2A / MCP                   │
-    │       ▼                      ▼                      │
-    │  ┌─────────┐  ┌─────────┐  ┌─────────────────┐      │
-    │  │ Amazon  │  │  eBay   │  │ Mandate Ledger  │      │
-    │  │ Server  │  │ Server  │  │ Service (AP2)   │      │
-    │  │         │  │         │  │                 │      │
-    │  │ UCP     │  │ UCP     │  │ Audit trail     │      │
-    │  │ Profile │  │ Profile │  │ Signatures      │      │
-    │  │ Catalog │  │ Catalog │  │ Immutability    │      │
-    │  │ Checkout│  │ Checkout│  │                 │      │
-    │  └────┬────┘  └────┬────┘  └────────┬────────┘      │
-    │       │            │                │               │
-    │       └────────────┴────────────────┘               │
-    │                    │                                │
-    │                    ▼                                │
-    │           ┌────────────────┐                        │
-    │           │  MongoDB Atlas │                        │
-    │           │  (Immutable    │                        │
-    │           │   Ledger)      │                        │
-    │           └────────────────┘                        │
-    │                                                     │
-    │              MERCHANT INFRASTRUCTURE                │
-    └─────────────────────────────────────────────────────┘
+Every purchase carries **signatures from both the client (shopping agent on behalf of the user) and the merchant**. They sign at different stages and over different content.
+
+### The Signature Data Model
+
+Every signature stored in the ledger follows this structure (`mandate_ledger_service/src/models/mandate.py`):
+
+```python
+class SignatureEntry(BaseModel):
+    signature: str       # The cryptographic output (JWT, hex hash, verifiable credential)
+    signer_id: str       # Who signed (e.g., "ucp_shopper", "ucp_merchant")
+    signer_type: str     # Role (e.g., "consumer-agent", "merchant-agent")
+    algorithm: str       # Algorithm used (EdDSA, ES256, RS256, SHA256, JWT)
+    signed_at: datetime  # UTC timestamp
+    metadata: dict       # Key ID, verification URL, etc.
 ```
 
-#### Interaction Sequence
+### What Each Party Signs — Step by Step With Payload Examples
 
-1. **User → Platform**: Natural language request
-2. **Platform → Merchants**: Discovery via `/.well-known/ucp.json` (parallel)
-3. **Platform → Merchants**: Product search via `GET /api/products` (parallel)
-4. **Platform → User**: Aggregated product list
-5. **User → Platform**: Product selection
-6. **Platform → Chosen Merchant**: `POST /api/checkout` with signed intent
-7. **Merchant → AP2 Ledger**: Write IntentMandate
-8. **Merchant → Platform**: Signed cart (merchant_authorization)
-9. **Platform → User**: Present cart for consent
-10. **User → Platform**: Consent
-11. **Platform → Merchant**: `POST /api/checkout/{id}/confirm` with cart signature
-12. **Merchant → AP2 Ledger**: Write CartMandate (both signatures)
-13. **Platform → Merchant**: `POST /api/checkout/{id}/complete` with payment signature
-14. **Merchant → AP2 Ledger**: Write PaymentMandate + Payment Record
-15. **Merchant → Platform**: Order confirmation
-16. **Platform → User**: Receipt
+#### Step 1: Shopper Signs the Intent
+
+The shopper agent creates a signature over the user's shopping intent. The **content being signed** is the intent data — what the user wants to buy:
+
+```json
+// CONTENT BEING SIGNED (input to hash function):
+{
+  "intent": "I want to buy an Espresso Machine",
+  "product": {
+    "label": "Espresso Machine - Professional Grade",
+    "amount": { "currency": "USD", "value": 189.99 }
+  }
+}
+
+// RESULTING SIGNATURE ENTRY (stored in the IntentMandate):
+{
+  "signature": "sig_7a3f2b1c9e4d5f6a8b0c1d2e3f4a5b6c",  // SHA-256 hash of canonical JSON above
+  "signer_id": "ucp_shopper",
+  "signer_type": "consumer-agent",
+  "algorithm": "SHA256",
+  "signed_at": "2026-03-30T14:22:00Z"
+}
+```
+
+#### Step 2: Merchant Signs the Cart (merchant_authorization)
+
+The merchant builds the cart and signs it with their private key. The **content being signed** is the complete cart offer — items, prices, shipping, totals:
+
+```json
+// CONTENT BEING SIGNED (the entire CartMandate data):
+{
+  "contents": {
+    "id": "cart_ucp_checkout_a1b2c3_9f8e7d6c",
+    "user_cart_confirmation_required": true,
+    "payment_request": {
+      "method_data": [{ "supported_methods": "CARD", "data": {"network": ["visa","mastercard"]} }],
+      "details": {
+        "id": "order_ucp_checkout_a1b2c3",
+        "display_items": [
+          { "label": "Espresso Machine", "amount": {"currency": "USD", "value": 189.99} }
+        ],
+        "total": { "label": "Total", "amount": {"currency": "USD", "value": 189.99} }
+      }
+    },
+    "cart_expiry": "2026-03-30T15:00:00Z",
+    "merchant_name": "UCP Demo Merchant"
+  },
+  "merchant_authorization": "eyJhbGciOiJSUzI1NiIs..."  // JWT signed with merchant's private key
+}
+
+// RESULTING SIGNATURE ENTRY:
+{
+  "signature": "eyJhbGciOiJSUzI1NiIs...",  // JWT (in production) or mock
+  "signer_id": "ucp_merchant",
+  "signer_type": "merchant-agent",
+  "algorithm": "JWT",
+  "signed_at": "2026-03-30T14:22:05Z"
+}
+```
+
+#### Step 3: Shopper Signs the Cart (cart confirmation)
+
+After the user reviews and approves the cart, the shopper signs the **entire cart content** (including the merchant's authorization inside it). The signed payload is the same cart object the merchant built:
+
+```json
+// CONTENT BEING SIGNED (the full cart as received from merchant):
+{
+  "contents": {
+    "id": "cart_ucp_checkout_a1b2c3_9f8e7d6c",
+    "payment_request": { "...same as above..." },
+    "merchant_name": "UCP Demo Merchant"
+  },
+  "merchant_authorization": "eyJhbGciOiJSUzI1NiIs..."
+}
+
+// RESULTING SIGNATURE ENTRY:
+{
+  "signature": "sig_b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+  "signer_id": "ucp_shopper",
+  "signer_type": "consumer-agent",
+  "algorithm": "SHA256",
+  "signed_at": "2026-03-30T14:23:10Z"
+}
+```
+
+**Both signatures are then stored together** on the CartMandate ledger entry:
+
+```python
+cart_entry = await ledger_client.create_mandate(
+    mandate_type="CartMandate",
+    mandate_data=cart_mandate.model_dump(),
+    initial_signatures=[shopper_cart_signature, merchant_signature],
+    initial_status="signed",
+)
+```
+
+#### Step 4: Shopper Signs the Payment Authorization
+
+The shopper creates a final signature authorizing payment. The **content being signed** is the payment-specific data:
+
+```json
+// CONTENT BEING SIGNED:
+{
+  "checkout_id": "ucp_checkout_a1b2c3",
+  "cart_id": "cart_ucp_checkout_a1b2c3_9f8e7d6c",
+  "payment_method": "CARD",
+  "amount": { "label": "Total", "amount": {"currency": "USD", "value": 189.99} }
+}
+
+// RESULTING SIGNATURE ENTRY:
+{
+  "signature": "sig_c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+  "signer_id": "ucp_shopper",
+  "signer_type": "consumer-agent",
+  "algorithm": "SHA256",
+  "signed_at": "2026-03-30T14:24:00Z"
+}
+```
+
+### What Differentiates a Merchant Signature from a Client Signature?
+
+The **signature structure is identical** — both produce a `SignatureEntry` with the same fields. The differences are:
+
+| Aspect | Client (Shopper) Signature | Merchant Signature |
+|--------|---------------------------|-------------------|
+| `signer_id` | User/agent identifier (e.g., `"ucp_shopper"`) | Merchant identifier (e.g., `"ucp_merchant"`) |
+| `signer_type` | `"consumer-agent"` | `"merchant-agent"` |
+| `algorithm` | SHA-256 (PoC) / EdDSA or ES256 (production) | JWT with RS256 (production) |
+| **Private key** | User's device key (hardware-backed in production) | Merchant's server-side private key |
+| **What it proves** | "I (the user) agree to these terms" | "I (the merchant) commit to fulfilling these terms at this price" |
+| **Content signed** | Varies per step (intent, cart, payment) | The cart offer with pricing |
+
+### Are Signatures Inside the Content Being Signed?
+
+**Yes, by design.** When the shopper signs the cart at Step 3, the merchant's `merchant_authorization` is **already inside** the cart payload. This is intentional — the shopper is signing "I agree to this cart **as offered by this merchant** (as proven by their signature)." This creates a nested attestation chain:
+
+```
+Shopper's signature covers:
+  └── Cart content
+        └── merchant_authorization (merchant's JWT signature)
+              └── Cart terms (items, prices, totals)
+```
+
+If the merchant's signature were removed or altered, the shopper's hash would no longer match, detecting the tampering.
 
 ---
 
-### 10. Where Does MCP (Model Context Protocol) Fit In?
+## 6. Non-Repudiation and Multi-User Agents
 
-#### What Is MCP?
+### The Problem: One Shopping Agent, Many Users
 
-**MCP (Model Context Protocol)** is an open standard created by **Anthropic** that standardizes how AI applications connect to external tools, data sources, and services. Think of it as a **universal adapter** between an LLM and the outside world.
+A shopping agent (like Gemini or ChatGPT) serves millions of users. If the agent signs mandates with a shared agent key, any user could claim "that wasn't me" and the signature would only prove "some user of Gemini approved this" — not *which* user.
 
-| Protocol | Relationship | Analogy |
-|----------|-------------|---------|
-| **MCP** | Agent ↔ **Tools/APIs** | A power adapter (connects the LLM to external capabilities) |
-| **A2A** | Agent ↔ **Agent** | A phone call between two people (peer-to-peer collaboration) |
-| **UCP** | Agent ↔ **Commerce** | A shopping language (standardized commerce semantics) |
+### How AP2 Solves This (Production Architecture)
 
-#### How MCP Relates to UCP and A2A
+AP2 specifies that the user's signature must be created with a **hardware-backed key on the user's personal device**, not the agent's server key:
+
+| Layer | Mechanism | Non-Repudiation Strength |
+|-------|-----------|------------------------|
+| **Device key binding** | The user's private key lives in their device's secure enclave (TPM, Secure Element). It never leaves the device. | Proves the physical device was present |
+| **Biometric authentication** | The key is unlocked via fingerprint, face scan, or PIN before signing | Proves the device owner was present |
+| **Key per user, not per agent** | Each user has their own key pair. The agent never holds the private key. | Eliminates "which user?" ambiguity |
+
+The flow works like this:
+
+```
+Shopping Agent (server)                    User's Device (phone/laptop)
+        │                                          │
+        │  "Please approve this cart"              │
+        │────────────────────────────────────────► │
+        │                                          │ 1. Display cart to user
+        │                                          │ 2. User confirms via biometric
+        │                                          │ 3. Secure enclave signs the cart
+        │                                          │    with user's PERSONAL private key
+        │  ◄──── signed mandate  ──────────────────│
+        │                                          │
+        │  Agent forwards the user-signed          │
+        │  mandate to the merchant                 │
+```
+
+The agent acts as a **relay** — it orchestrates the flow but never holds the user's signing key. This is similar to how Apple Pay works: the phone's secure enclave signs the transaction, not the merchant's app.
+
+### What This PoC Implements
+
+This PoC uses **simplified signatures** (SHA-256 hashes with an agent-level key) for demonstration. In production:
+
+| PoC (This Project) | Production (AP2 Spec) |
+|--------------------|----------------------|
+| `hashlib.sha256(data).hexdigest()` | `device_secure_enclave.sign(data, user_private_key)` |
+| Agent key shared across sessions | User's personal hardware-backed key |
+| No biometric gate | Fingerprint/face required before signing |
+| Signer identified by `signer_id` string | Signer identified by verifiable credential + device attestation |
+
+---
+
+## 7. Security Between Agents and MITM Prevention
+
+### Signatures Do NOT Secure the Connection
+
+This is a critical distinction:
+
+| Concern | Mechanism | What It Protects |
+|---------|-----------|-----------------|
+| **Non-repudiation** | Cryptographic signatures on mandates | Proves who authorized what — used **after** the transaction for disputes |
+| **Transport security** | TLS/HTTPS, mTLS, API keys, OAuth2 | Protects data **in transit** — prevents eavesdropping and MITM |
+
+Signatures prove "this data was approved by this party." They do **not** guarantee that the party you are talking to right now is who they claim to be. That is the job of transport-layer security.
+
+### How MITM Is Prevented
+
+Agent-to-agent and agent-to-service communication is protected by **multiple layers**, none of which are the mandate signatures:
+
+#### Layer 1: TLS/HTTPS (Transport Encryption)
+
+All communication uses HTTPS. A MITM attacker cannot read or alter data in transit because:
+- The server presents a TLS certificate issued by a trusted CA
+- The client verifies the certificate chain before sending data
+- All traffic is encrypted end-to-end
+
+#### Layer 2: API Key Authentication (Service Identity)
+
+The Mandate Ledger Service requires an API key (`Authorization: Bearer mlsk_...`) on every request. Each agent has its own key with specific scopes:
+
+```python
+# Every request is authenticated — unknown agents are rejected
+if not verify_api_key(api_key, key_record.key_hash):
+    raise InvalidApiKeyError(key_prefix)
+```
+
+#### Layer 3: Agent Allowlists (Trust Registry)
+
+As stated in the AP2 specification, the current trust model uses **manually curated allowlists**:
+
+```python
+# From example/src/roles/shopping_agent/remote_agents.py:
+# "This registry serves as the initial allowlist of remote agents
+#  that the shopping agent trusts."
+
+merchant_agent_client = PaymentRemoteA2aClient(
+    name="merchant_agent",
+    base_url="http://localhost:8001/a2a/merchant_agent",
+    required_extensions={EXTENSION_URI},
+)
+```
+
+Each participant maintains a list of trusted counterparts:
+- The **shopping agent** has an allowlist of trusted merchants and credentials providers
+- The **merchant** has an allowlist of trusted shopping agents (identified by API key, not by the user behind them)
+- The **credentials provider** has an allowlist of trusted shopping agents
+
+### You Are Correct: The Merchant Needs an ACL Independent of Users
+
+Yes. A merchant's trust relationship is with **agents/services, not with individual users**. The merchant validates:
+
+1. **Is this agent in my allowlist?** (agent-level trust via API key or A2A Agent Card)
+2. **Does this agent's request contain valid user signatures?** (user-level authorization via mandate signatures)
+
+These are two separate checks:
+
+```
+AGENT TRUST (Layer 3 - allowlist):
+  "Is the agent calling me a legitimate shopping agent I recognize?"
+  → Checked via API key, Agent Card, or mTLS certificate
+
+USER AUTHORIZATION (mandate signatures):
+  "Has the user behind this agent actually approved this cart?"
+  → Checked via cryptographic signature on the mandate
+```
+
+A rogue agent that is not in the merchant's allowlist will be rejected at the connection level, regardless of what signatures it presents. A legitimate agent that presents tampered signatures will be rejected at the mandate verification level.
+
+### Future Evolution
+
+The AP2 specification plans to evolve from static allowlists to **dynamic trust establishment** using:
+- Identity assertions built into A2A/MCP protocols
+- DNS ownership verification
+- mTLS with certificates issued by trusted authorities
+- Real-time reputation and risk scoring
+
+---
+
+## 8. Signature Verification by the Auditor
+
+### The Question
+
+If signatures are created by encrypting a hash with a private key, how does the auditor verify them without the private key?
+
+### The Answer: Public Key Cryptography
+
+This is standard asymmetric cryptography. Each signer has a **key pair**: a private key (secret, used to sign) and a public key (shared, used to verify). The auditor only needs the **public key**, which is openly available.
+
+#### For Merchant Signatures
+
+The merchant's public keys are published at `/.well-known/ucp.json/keys` as JWK entries:
+
+```json
+{
+  "keys": [{
+    "kid": "merchant-demo-key-2026",
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+    "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM"
+  }]
+}
+```
+
+Verification flow:
+1. Auditor fetches the merchant's public key from `/.well-known/ucp.json/keys`
+2. Auditor takes the mandate content that was signed
+3. Auditor uses the public key + the JWT signature + the content to verify mathematically that the signature was produced by the holder of the corresponding private key
+
+#### For User Signatures (Production)
+
+In production, user public keys would be:
+- Registered with a **Credentials Provider** (digital wallet) during setup
+- Included in the **Verifiable Digital Credential** alongside the signature
+- Chained to a device attestation certificate (e.g., Android Key Attestation, Apple DeviceCheck)
+
+The auditor can verify the signature using the public key embedded in or referenced by the VDC, and can verify the key's authenticity through the attestation chain.
+
+#### In This PoC
+
+This PoC uses SHA-256 hashes (not asymmetric encryption), so "verification" is simpler — the auditor checks that the signature field exists and matches the expected hash of the content. The auditor agent in `example/ucp_flow/auditor_agent/tools.py` checks structural presence:
+
+```python
+signature_checks = {
+    "buyer_intent_signature": bool(intent_mandate.get("signatures")),
+    "seller_cart_signature": bool(cart_mandate.get("signatures")),
+    "buyer_payment_signature": bool(payment_mandate.get("signatures"))
+}
+all_signatures_valid = all(signature_checks.values())
+```
+
+In production, this would be replaced by full cryptographic verification using public keys.
+
+---
+
+## 9. Immutability and Idempotency
+
+### How Immutability Is Ensured
+
+The ledger enforces immutability through five mechanisms:
+
+**A. Append-Only Architecture** — The API only exposes INSERT operations. No UPDATE or DELETE endpoints exist. Status changes create new versions; old versions are never modified.
+
+**B. Blockchain-Style Hash Chaining** — Each version stores a SHA-256 hash of its content and a reference to the parent version's hash:
+
+```python
+class MandateLedgerEntry(BaseModel):
+    parent_version: Optional[int]       # None for v1
+    parent_version_hash: Optional[str]  # SHA-256 of parent's canonical JSON
+    current_version_hash: str           # SHA-256 of this version's canonical JSON
+```
+
+Tampering with any version breaks the chain, since child hashes reference the parent hash.
+
+**C. Optimistic Locking** — Concurrent writes are detected and retried with exponential backoff, preventing version chain corruption.
+
+**D. State Machine** — The `core/state_machine.py` enforces unidirectional transitions. Terminal states (expired, cancelled, failed) have no outgoing transitions. States cannot move backwards.
+
+**E. Consistency Verification** — The `ConsistencyService` scans the ledger for version gaps, broken chains, and hash mismatches.
+
+### How Idempotency Is Ensured
+
+Clients include an `X-Idempotency-Key` header on write requests. The server:
+
+1. Checks if the key was already processed (lookup by key + agent ID in MongoDB)
+2. If found, returns the cached response without re-processing
+3. If not found, processes the request and stores the response
+4. Records expire after 24 hours via MongoDB TTL indexes
+
+The UCP checkout generates deterministic keys to prevent duplicate ledger writes during retries:
+
+```python
+await ledger_client.create_mandate(..., idempotency_key=f"intent_{checkout_id}")
+await ledger_client.create_mandate(..., idempotency_key=f"cart_signed_{cart_id}")
+await ledger_client.create_mandate(..., idempotency_key=f"payment_{payment_mandate_id}")
+```
+
+---
+
+## 10. Compliance and Audit Trail
+
+Every operation is logged in the `audit_logs` MongoDB collection, capturing event type, entity ID, actor ID and type, action details, timestamp, IP address, and transaction ID.
+
+Key compliance features:
+
+| Feature | Implementation |
+|---------|---------------|
+| **Audit trail** | Every mandate creation, status change, and signing generates an audit entry (`AuditRepository`) |
+| **Authentication** | API keys (bcrypt-hashed, scoped, expirable, revokable) required on all endpoints |
+| **RBAC** | Permission scopes (`mandate:read`, `mandate:write`, `audit:read`, `auth:manage`) |
+| **Rate limiting** | Per-agent sliding window (default 60 req/min), HTTP 429 with standard headers |
+| **Auditor agent** | Dedicated compliance role that verifies signatures, queries history, and tests immutability |
+| **Financial records retention** | Append-only ledger means no records are ever deleted; complete authorization chain preserved via `transaction_id` |
+
+---
+
+## 11. Multi-Protocol Ecosystem: UCP, A2A, and MCP
+
+> For how AP2 relates to A2A, MCP, UCP, and x402 at the protocol level, see [AP2 Summary § 10](./ap2-summary.md#10-how-ap2-relates-to-a2a-mcp-ucp-and-x402).
+
+### How They Fit Together in Practice
+
+| Protocol | Role | Analogy |
+|----------|------|---------|
+| **UCP** | Commerce semantics — discovery, checkout, orders | A shared shopping language |
+| **A2A** | Agent-to-agent communication — tasks, messages, delegation | Phone calls between agents |
+| **MCP** | Agent-to-tool connectivity — DB reads, API calls, functions | Power adapters for the LLM |
+| **AP2** | Trust layer — signed mandates, audit trail, non-repudiation | Notarized receipts |
+
+UCP supports all three as transport bindings. A merchant's `/.well-known/ucp.json` can declare REST, MCP, and A2A endpoints simultaneously, meaning any AI platform (ChatGPT via MCP, Gemini via A2A, custom agents via REST) can interact with the same merchant.
+
+### Does Each Merchant Need an Agent?
+
+UCP supports two models:
+
+##### Model A: Merchant as a Server (UCP REST) — Used in `ucp_flow`
+
+The merchant runs a **standard web server** (FastAPI, Express, etc.) that exposes UCP REST endpoints. No AI agent is required on the merchant side.
+
+```
+Shopper Agent (AI)  ──── REST ────►  Merchant Server (no AI)
+                                     ├── /.well-known/ucp.json
+                                     ├── /api/products
+                                     └── /api/checkout
+```
+
+This is the simpler model. The merchant is a **conventional web service** that happens to speak UCP. This is what the `example/ucp_flow/merchant_server/` demonstrates.
+
+##### Model B: Merchant as an Agent (A2A) — Used in `card_flow`
+
+The merchant runs an **AI agent** that communicates with the shopper agent via the A2A protocol. Both sides have LLMs.
+
+```
+Shopper Agent (AI)  ──── A2A ────►  Merchant Agent (AI)
+                                     ├── agent.json
+                                     ├── Catalog sub-agent
+                                     └── Payment processor agent
+```
+
+This is the richer model. The merchant agent can use AI reasoning for personalization, negotiation, and complex order handling. This is what `example/card_flow/` and `example/src/roles/merchant_agent/` demonstrate.
+
+In summary:
+
+| Model | Example in This Project | Merchant Side |
+|-------|------------------------|--------------|
+| **REST server** (no AI) | `example/ucp_flow/merchant_server/` | Standard FastAPI web server implementing UCP endpoints |
+| **A2A agent** (with AI) | `example/card_flow/` + `example/src/roles/merchant_agent/` | ADK agent with LLM-powered reasoning |
+
+In a Multi-Merchant Ecosystem not every merchant needs AI. Small merchants can run a UCP REST server; large merchants might add an A2A agent for personalization.
+
+| Merchant | Implementation | Why |
+|----------|---------------|-----|
+| Amazon | UCP REST server + optional A2A agent | High volume, sophisticated catalog — REST for scale, AI agent for personalization |
+| Small boutique | UCP REST server only | Simple catalog, no need for AI reasoning |
+| AI-native startup | A2A agent only | Built entirely on agentic architecture |
+| Legacy retailer | UCP REST adapter in front of existing e-commerce APIs | Bridges existing systems to UCP |
+
+##### Who Is Responsible for Implementing Each Agent?
+
+| Component | Responsible Party | What They Build |
+|-----------|------------------|-----------------|
+| **Shopper / Consumer Agent** | The **AI platform** (Google, OpenAI, Anthropic, etc.) | The user-facing shopping assistant with UCP client capabilities |
+| **Merchant Agent / Server** | The **merchant** (Amazon, eBay, etc.) or their **e-commerce platform** (Shopify, WooCommerce, etc.) | UCP-compliant endpoints, product catalog, checkout logic |
+| **Payment Processor Agent** | The **payment provider** (Stripe, Adyen, etc.) | Payment processing, tokenization, fraud detection |
+| **Credentials Provider Agent** | The **wallet / identity provider** (Google Pay, Apple Pay, banks) | Secure credential storage, payment method selection |
+| **Auditor / Compliance Agent** | The **merchant**, **regulator**, or **third-party auditor** | Transaction verification, compliance monitoring |
+| **Mandate Ledger Service** | The **merchant** (self-hosted) or a **SaaS provider** | Immutable ledger infrastructure for AP2 mandates |
+
+### How MCP Relates to UCP and A2A
 
 These three protocols operate at **different layers** and are **complementary, not competing**:
 
@@ -941,18 +747,9 @@ dev.ucp.shopping.order            →  get_order_status()
 
 The UCP spec states: *"UCP capabilities map 1:1 to MCP tools"* — meaning every UCP capability can be exposed as an MCP tool that the LLM can call directly.
 
-#### Where MCP Is Used in This Project
+#### MCP in This Project
 
-In this project, MCP is present as a **transitive dependency** through the Google ADK (Agent Development Kit):
-
-```
-google-adk (1.5.0)
-  └── mcp (1.22.0)  ← MCP Python SDK
-```
-
-The Google ADK uses MCP internally to manage tool calling for agents. When the shopper agent defines tools like `discover_merchant`, `search_products`, and `start_checkout`, the ADK framework may use MCP under the hood to register and invoke these functions.
-
-However, the **merchant server** in this PoC uses **pure REST** (not MCP) as its transport. In a production system, a merchant could additionally expose an MCP server so that LLMs with MCP support could call merchant tools directly.
+MCP appears as a transitive dependency via Google ADK (`google-adk → mcp`). The ADK uses MCP internally to manage tool registration for agents. The merchant server in this PoC uses pure REST. In production, merchants could additionally expose an MCP server where each UCP capability maps 1:1 to an MCP tool.
 
 #### Would MCP Be Used Inside Each Agent?
 
@@ -967,61 +764,6 @@ However, the **merchant server** in this PoC uses **pure REST** (not MCP) as its
 
 Each agent would have its own **MCP server** exposing the specific tools that agent needs. The LLM running inside that agent would call those tools through MCP's standardized interface.
 
----
-
-### 11. Agent-to-Merchant Mapping: Does Each Merchant Have an Agent?
-
-#### The Two Models
-
-UCP supports two architectural models for how merchants participate:
-
-##### Model A: Merchant as a Server (UCP REST) — Used in `ucp_flow`
-
-The merchant runs a **standard web server** (FastAPI, Express, etc.) that exposes UCP REST endpoints. No AI agent is required on the merchant side.
-
-```
-Shopper Agent (AI)  ──── REST ────►  Merchant Server (no AI)
-                                     ├── /.well-known/ucp.json
-                                     ├── /api/products
-                                     └── /api/checkout
-```
-
-This is the simpler model. The merchant is a **conventional web service** that happens to speak UCP. This is what the `example/ucp_flow/merchant_server/` demonstrates.
-
-##### Model B: Merchant as an Agent (A2A) — Used in `card_flow`
-
-The merchant runs an **AI agent** that communicates with the shopper agent via the A2A protocol. Both sides have LLMs.
-
-```
-Shopper Agent (AI)  ──── A2A ────►  Merchant Agent (AI)
-                                     ├── agent.json
-                                     ├── Catalog sub-agent
-                                     └── Payment processor agent
-```
-
-This is the richer model. The merchant agent can use AI reasoning for personalization, negotiation, and complex order handling. This is what `example/card_flow/` and `example/src/roles/merchant_agent/` demonstrate.
-
-#### In a Multi-Merchant Ecosystem
-
-Not every merchant needs an AI agent. The ecosystem would be heterogeneous:
-
-| Merchant | Implementation | Why |
-|----------|---------------|-----|
-| Amazon | UCP REST server + optional A2A agent | High volume, sophisticated catalog — REST for scale, AI agent for personalization |
-| Small boutique | UCP REST server only | Simple catalog, no need for AI reasoning |
-| AI-native startup | A2A agent only | Built entirely on agentic architecture |
-| Legacy retailer | UCP REST adapter in front of existing e-commerce APIs | Bridges existing systems to UCP |
-
-#### Who Is Responsible for Implementing Each Agent?
-
-| Component | Responsible Party | What They Build |
-|-----------|------------------|-----------------|
-| **Shopper / Consumer Agent** | The **AI platform** (Google, OpenAI, Anthropic, etc.) | The user-facing shopping assistant with UCP client capabilities |
-| **Merchant Agent / Server** | The **merchant** (Amazon, eBay, etc.) or their **e-commerce platform** (Shopify, WooCommerce, etc.) | UCP-compliant endpoints, product catalog, checkout logic |
-| **Payment Processor Agent** | The **payment provider** (Stripe, Adyen, etc.) | Payment processing, tokenization, fraud detection |
-| **Credentials Provider Agent** | The **wallet / identity provider** (Google Pay, Apple Pay, banks) | Secure credential storage, payment method selection |
-| **Auditor / Compliance Agent** | The **merchant**, **regulator**, or **third-party auditor** | Transaction verification, compliance monitoring |
-| **Mandate Ledger Service** | The **merchant** (self-hosted) or a **SaaS provider** | Immutable ledger infrastructure for AP2 mandates |
 
 #### Who Implements Each MCP Server?
 
@@ -1034,9 +776,9 @@ MCP servers are implemented by **whoever owns the data or capability** being exp
 | Wallet MCP | **Wallet provider** | `get_payment_methods()`, `get_shipping_address()` |
 | Ledger MCP | **Ledger operator** | `create_mandate()`, `get_audit_trail()` |
 
----
 
-### 12. Who Maintains the Entire Ecosystem?
+
+### Who Implements and Maintains What?
 
 The agentic commerce ecosystem is maintained through a **layered governance model** — no single entity controls everything:
 
@@ -1074,23 +816,25 @@ This is by design — just as the web works because anyone can create a website 
 
 ---
 
-## Updated Summary Table
+## Summary
 
-| Concern | Mechanism | Key Implementation |
-|---------|-----------|-------------------|
-| **Merchant Discovery** | `/.well-known/ucp.json` endpoint (decentralized, per-domain) | `merchant_server/well_known.py` |
-| **Multi-Merchant Search** | Platform queries each merchant's product endpoint in parallel | `merchant_server/catalog.py` |
-| **AI Platform Support** | Transport-agnostic (REST + MCP + A2A) | UCP spec supports all three transports |
-| **MCP Integration** | UCP capabilities map 1:1 to MCP tools; used within agents for tool calling | Google ADK uses MCP internally |
-| **Agent Architecture** | Merchant can be a REST server or A2A agent; each merchant implements their own | `ucp_flow/` (REST) vs `card_flow/` (A2A) |
-| **Ecosystem Governance** | Open standards, no single owner; layered responsibility model | UCP (Google), A2A (Linux Foundation), MCP (Anthropic) |
-| **Signatures** | SHA-256/JWT signatures per agent, stored in ledger | `ucp_client.py`, `models/mandate.py` |
-| **Immutability** | Append-only inserts, hash chaining, state machine, no DELETE/UPDATE | `repositories/mandate_repository.py`, `core/hashing.py` |
-| **Idempotency** | `X-Idempotency-Key` header + MongoDB deduplication | `services/idempotency_service.py`, `api/routes/mandates.py` |
-| **Compliance** | Audit logs, RBAC, signatures, consistency checks, auditor agent | `repositories/audit_repository.py`, `services/auth_service.py` |
+| Concern | Mechanism |
+|---------|-----------|
+| **Merchant Discovery** | `/.well-known/ucp.json` — decentralized, per-domain |
+| **Dual Signatures** | Both shopper and merchant sign; the cart carries nested signatures |
+| **Non-Repudiation** | User's hardware-backed device key (production); agent-level hash (PoC) |
+| **Transport Security** | TLS + API keys + agent allowlists (not mandate signatures) |
+| **MITM Prevention** | TLS certificate verification + agent allowlist ACLs |
+| **Signature Verification** | Public key cryptography — auditor uses published public keys |
+| **Immutability** | Append-only inserts, hash chaining, state machine, no DELETE/UPDATE |
+| **Idempotency** | `X-Idempotency-Key` header + MongoDB deduplication with TTL |
+| **Compliance** | Audit logs, RBAC, consistency checks, auditor agent, financial retention |
+| **Multi-Protocol** | UCP for commerce, A2A for agent-agent, MCP for agent-tools, AP2 for trust |
 
 ## References
+- [AP2 Protocol Summary](AP2_Protocol_Summary.md) — detailed protocol theory, actors, workflows, security deep dive, ecosystem
 - [MongoDB — Mandate Ledger Service - AP2 Payment Flow Demo](https://github.com/mongodb-partners/aifac-mandate-ledger-service-AP2/tree/main)
 - [Understanding UCP + AP2 Integration](https://github.com/mongodb-partners/aifac-mandate-ledger-service-AP2/blob/main/docs/UCP_AP2_INTEGRATION.md)
-- [UCP + AP2 Integration Demo](https://github.com/mongodb-partners/aifac-mandate-ledger-service-AP2/blob/main/example/ucp_flow/README.md)
-- [Agent Payments Protocol (AP2) - Complete Summary](./ap2-summary.md)
+- [UCP Specification](https://ucp.dev)
+- [A2A Protocol](https://a2a-protocol.org)
+- [MCP Protocol](https://modelcontextprotocol.io)
