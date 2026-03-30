@@ -163,17 +163,17 @@ This separation is a core security feature.
 
 ```
 +-----------------------------------------------+
-|                   AP2 LAYER                    |  Payment mandates, VDCs,
-|          (Agent Payments Protocol)             |  cart/intent/payment contracts
+|                   AP2 LAYER                   |  Payment mandates, VDCs,
+|          (Agent Payments Protocol)            |  cart/intent/payment contracts
 +-----------------------------------------------+
-|            A2A LAYER           |   MCP LAYER   |
-|    (Agent-to-Agent comms)      | (Agent-to-    |
-|    Tasks, messages between     |  Tool comms)  |
-|    Shopping Agent, Merchant,   | APIs, data    |
-|    Credentials Provider        | sources       |
+|            A2A LAYER           |   MCP LAYER  |
+|    (Agent-to-Agent comms)      | (Agent-to-   |
+|    Tasks, messages between     |  Tool comms) |
+|    Shopping Agent, Merchant,   | APIs, data   |
+|    Credentials Provider        | sources      |
 +-----------------------------------------------+
-|              TRANSPORT LAYER                   |
-|         HTTPS, DNS, mTLS, OAuth2               |
+|              TRANSPORT LAYER                  |
+|         HTTPS, DNS, mTLS, OAuth2              |
 +-----------------------------------------------+
 ```
 
@@ -543,4 +543,8 @@ AP2 solves the fundamental problem of trust in AI-driven commerce. By introducin
 The protocol's USP -- "Verifiable Intent, Not Inferred Action" -- ensures that every AI-driven transaction is backed by real, provable human authorization, not just an AI's interpretation of what the user wanted.
 
 ## References
-- [Agent Payments Protocol (AP2)](https://github.com/google-agentic-commerce/AP2)
+- [GitHub: Agent Payments Protocol (AP2)](https://github.com/google-agentic-commerce/AP2)
+- [UCP Translates AP2 Requirements into Reality](https://ap2-protocol.org/topics/ap2-and-ucp/)
+- [Under the Hood: Universal Commerce Protocol (UCP)](https://developers.googleblog.com/under-the-hood-universal-commerce-protocol-ucp/)
+- [What is AP2?](https://ap2-protocol.org/)
+- [A2A: The Agent2Agent Protocol](https://learn.deeplearning.ai/courses/a2a-the-agent2agent-protocol/information)
