@@ -102,7 +102,7 @@ A complete purchase flows through these steps (combining UCP discovery with AP2 
 
 ### Who Is Responsible for Discovery?
 
-UCP follows a **decentralized model** — there is no central registry. **Each merchant publishes its own profile** at `/.well-known/ucp.json` on its domain, like `robots.txt` or `/.well-known/openid-configuration`:
+UCP follows a **decentralized model** there is no central registry. **Each merchant publishes its own profile** at `/.well-known/ucp.json` on its domain, like `robots.txt` or `/.well-known/openid-configuration`:
 
 ```
 amazon.com        → GET https://amazon.com/.well-known/ucp.json
@@ -231,11 +231,11 @@ class SignatureEntry(BaseModel):
     metadata: dict       # Key ID, verification URL, etc.
 ```
 
-### What Each Party Signs — Step by Step With Payload Examples
+### What Each Party Signs (Step by Step With Payload Examples)
 
 #### Step 1: Shopper Signs the Intent
 
-The shopper agent creates a signature over the user's shopping intent. The **content being signed** is the intent data — what the user wants to buy:
+The shopper agent creates a signature over the user's shopping intent. The **content being signed** is the intent data, what the user wants to buy:
 
 ```json
 // CONTENT BEING SIGNED (input to hash function):
@@ -259,7 +259,7 @@ The shopper agent creates a signature over the user's shopping intent. The **con
 
 #### Step 2: Merchant Signs the Cart (merchant_authorization)
 
-The merchant builds the cart and signs it with their private key. The **content being signed** is the complete cart offer — items, prices, shipping, totals:
+The merchant builds the cart and signs it with their private key. The **content being signed** is the complete cart offer, items, prices, shipping, totals:
 
 ```json
 // CONTENT BEING SIGNED (the entire CartMandate data):
@@ -354,7 +354,7 @@ The shopper creates a final signature authorizing payment. The **content being s
 
 ### What Differentiates a Merchant Signature from a Client Signature?
 
-The **signature structure is identical** — both produce a `SignatureEntry` with the same fields. The differences are:
+The **signature structure is identical**, both produce a `SignatureEntry` with the same fields. The differences are:
 
 | Aspect | Client (Shopper) Signature | Merchant Signature |
 |--------|---------------------------|-------------------|
@@ -367,7 +367,7 @@ The **signature structure is identical** — both produce a `SignatureEntry` wit
 
 ### Are Signatures Inside the Content Being Signed?
 
-**Yes, by design.** When the shopper signs the cart at Step 3, the merchant's `merchant_authorization` is **already inside** the cart payload. This is intentional — the shopper is signing "I agree to this cart **as offered by this merchant** (as proven by their signature)." This creates a nested attestation chain:
+**Yes, by design.** When the shopper signs the cart at Step 3, the merchant's `merchant_authorization` is **already inside** the cart payload. This is intentional, the shopper is signing "I agree to this cart **as offered by this merchant** (as proven by their signature)." This creates a nested attestation chain:
 
 ```
 Shopper's signature covers:
@@ -384,7 +384,7 @@ If the merchant's signature were removed or altered, the shopper's hash would no
 
 ### The Problem: One Shopping Agent, Many Users
 
-A shopping agent (like Gemini or ChatGPT) serves millions of users. If the agent signs mandates with a shared agent key, any user could claim "that wasn't me" and the signature would only prove "some user of Gemini approved this" — not *which* user.
+A shopping agent (like Gemini or ChatGPT) serves millions of users. If the agent signs mandates with a shared agent key, any user could claim "that wasn't me" and the signature would only prove "some user of Gemini approved this" not *which* user.
 
 ### How AP2 Solves This (Production Architecture)
 
@@ -413,7 +413,7 @@ Shopping Agent (server)                    User's Device (phone/laptop)
         │  mandate to the merchant                 │
 ```
 
-The agent acts as a **relay** — it orchestrates the flow but never holds the user's signing key. This is similar to how Apple Pay works: the phone's secure enclave signs the transaction, not the merchant's app.
+The agent acts as a **relay**, it orchestrates the flow but never holds the user's signing key. This is similar to how Apple Pay works: the phone's secure enclave signs the transaction, not the merchant's app.
 
 ### What This PoC Implements
 
@@ -436,8 +436,8 @@ This is a critical distinction:
 
 | Concern | Mechanism | What It Protects |
 |---------|-----------|-----------------|
-| **Non-repudiation** | Cryptographic signatures on mandates | Proves who authorized what — used **after** the transaction for disputes |
-| **Transport security** | TLS/HTTPS, mTLS, API keys, OAuth2 | Protects data **in transit** — prevents eavesdropping and MITM |
+| **Non-repudiation** | Cryptographic signatures on mandates | Proves who authorized what, used **after** the transaction for disputes |
+| **Transport security** | TLS/HTTPS, mTLS, API keys, OAuth2 | Protects data **in transit**, prevents eavesdropping and MITM |
 
 Signatures prove "this data was approved by this party." They do **not** guarantee that the party you are talking to right now is who they claim to be. That is the job of transport-layer security.
 
@@ -457,7 +457,7 @@ All communication uses HTTPS. A MITM attacker cannot read or alter data in trans
 The Mandate Ledger Service requires an API key (`Authorization: Bearer mlsk_...`) on every request. Each agent has its own key with specific scopes:
 
 ```python
-# Every request is authenticated — unknown agents are rejected
+# Every request is authenticated, unknown agents are rejected
 if not verify_api_key(api_key, key_record.key_hash):
     raise InvalidApiKeyError(key_prefix)
 ```
@@ -556,7 +556,7 @@ The auditor can verify the signature using the public key embedded in or referen
 
 #### In This PoC
 
-This PoC uses SHA-256 hashes (not asymmetric encryption), so "verification" is simpler — the auditor checks that the signature field exists and matches the expected hash of the content. The auditor agent in `example/ucp_flow/auditor_agent/tools.py` checks structural presence:
+This PoC uses SHA-256 hashes (not asymmetric encryption), so "verification" is simpler, the auditor checks that the signature field exists and matches the expected hash of the content. The auditor agent in `example/ucp_flow/auditor_agent/tools.py` checks structural presence:
 
 ```python
 signature_checks = {
@@ -577,9 +577,9 @@ In production, this would be replaced by full cryptographic verification using p
 
 The ledger enforces immutability through five mechanisms:
 
-**A. Append-Only Architecture** — The API only exposes INSERT operations. No UPDATE or DELETE endpoints exist. Status changes create new versions; old versions are never modified.
+**A. Append-Only Architecture:** The API only exposes INSERT operations. No UPDATE or DELETE endpoints exist. Status changes create new versions; old versions are never modified.
 
-**B. Blockchain-Style Hash Chaining** — Each version stores a SHA-256 hash of its content and a reference to the parent version's hash:
+**B. Blockchain-Style Hash Chaining:** Each version stores a SHA-256 hash of its content and a reference to the parent version's hash:
 
 ```python
 class MandateLedgerEntry(BaseModel):
@@ -590,11 +590,11 @@ class MandateLedgerEntry(BaseModel):
 
 Tampering with any version breaks the chain, since child hashes reference the parent hash.
 
-**C. Optimistic Locking** — Concurrent writes are detected and retried with exponential backoff, preventing version chain corruption.
+**C. Optimistic Locking** : Concurrent writes are detected and retried with exponential backoff, preventing version chain corruption.
 
-**D. State Machine** — The `core/state_machine.py` enforces unidirectional transitions. Terminal states (expired, cancelled, failed) have no outgoing transitions. States cannot move backwards.
+**D. State Machine** : The `core/state_machine.py` enforces unidirectional transitions. Terminal states (expired, cancelled, failed) have no outgoing transitions. States cannot move backwards.
 
-**E. Consistency Verification** — The `ConsistencyService` scans the ledger for version gaps, broken chains, and hash mismatches.
+**E. Consistency Verification** : The `ConsistencyService` scans the ledger for version gaps, broken chains, and hash mismatches.
 
 ### How Idempotency Is Ensured
 
@@ -640,10 +640,10 @@ Key compliance features:
 
 | Protocol | Role | Analogy |
 |----------|------|---------|
-| **UCP** | Commerce semantics — discovery, checkout, orders | A shared shopping language |
-| **A2A** | Agent-to-agent communication — tasks, messages, delegation | Phone calls between agents |
-| **MCP** | Agent-to-tool connectivity — DB reads, API calls, functions | Power adapters for the LLM |
-| **AP2** | Trust layer — signed mandates, audit trail, non-repudiation | Notarized receipts |
+| **UCP** | Commerce semantics: discovery, checkout, orders | A shared shopping language |
+| **A2A** | Agent-to-agent communication: tasks, messages, delegation | Phone calls between agents |
+| **MCP** | Agent-to-tool connectivity: DB reads, API calls, functions | Power adapters for the LLM |
+| **AP2** | Trust layer: signed mandates, audit trail, non-repudiation | Notarized receipts |
 
 UCP supports all three as transport bindings. A merchant's `/.well-known/ucp.json` can declare REST, MCP, and A2A endpoints simultaneously, meaning any AI platform (ChatGPT via MCP, Gemini via A2A, custom agents via REST) can interact with the same merchant.
 
@@ -688,7 +688,7 @@ In a Multi-Merchant Ecosystem not every merchant needs AI. Small merchants can r
 
 | Merchant | Implementation | Why |
 |----------|---------------|-----|
-| Amazon | UCP REST server + optional A2A agent | High volume, sophisticated catalog — REST for scale, AI agent for personalization |
+| Amazon | UCP REST server + optional A2A agent | High volume, sophisticated catalog, REST for scale, AI agent for personalization |
 | Small boutique | UCP REST server only | Simple catalog, no need for AI reasoning |
 | AI-native startup | A2A agent only | Built entirely on agentic architecture |
 | Legacy retailer | UCP REST adapter in front of existing e-commerce APIs | Bridges existing systems to UCP |
@@ -745,7 +745,7 @@ dev.ucp.shopping.product_search   →  search_products()
 dev.ucp.shopping.order            →  get_order_status()
 ```
 
-The UCP spec states: *"UCP capabilities map 1:1 to MCP tools"* — meaning every UCP capability can be exposed as an MCP tool that the LLM can call directly.
+The UCP spec states: *"UCP capabilities map 1:1 to MCP tools"*, meaning every UCP capability can be exposed as an MCP tool that the LLM can call directly.
 
 #### MCP in This Project
 
@@ -780,7 +780,7 @@ MCP servers are implemented by **whoever owns the data or capability** being exp
 
 ### Who Implements and Maintains What?
 
-The agentic commerce ecosystem is maintained through a **layered governance model** — no single entity controls everything:
+The agentic commerce ecosystem is maintained through a **layered governance model**, no single entity controls everything:
 
 #### Protocol Governance
 
@@ -812,7 +812,7 @@ The agentic commerce ecosystem is maintained through a **layered governance mode
 - **Protocol stewards** maintain the specifications and ensure backward compatibility
 - **The community** contributes reference implementations, SDKs, and tooling
 
-This is by design — just as the web works because anyone can create a website (HTTP) and anyone can build a browser, agentic commerce works because anyone can implement a UCP merchant and anyone can build a shopping agent. The **protocols are the shared contracts** that make interoperability possible.
+This is by design, just as the web works because anyone can create a website (HTTP) and anyone can build a browser, agentic commerce works because anyone can implement a UCP merchant and anyone can build a shopping agent. The **protocols are the shared contracts** that make interoperability possible.
 
 ---
 
@@ -820,12 +820,12 @@ This is by design — just as the web works because anyone can create a website 
 
 | Concern | Mechanism |
 |---------|-----------|
-| **Merchant Discovery** | `/.well-known/ucp.json` — decentralized, per-domain |
+| **Merchant Discovery** | `/.well-known/ucp.json` decentralized, per-domain |
 | **Dual Signatures** | Both shopper and merchant sign; the cart carries nested signatures |
 | **Non-Repudiation** | User's hardware-backed device key (production); agent-level hash (PoC) |
 | **Transport Security** | TLS + API keys + agent allowlists (not mandate signatures) |
 | **MITM Prevention** | TLS certificate verification + agent allowlist ACLs |
-| **Signature Verification** | Public key cryptography — auditor uses published public keys |
+| **Signature Verification** | Public key cryptography, auditor uses published public keys |
 | **Immutability** | Append-only inserts, hash chaining, state machine, no DELETE/UPDATE |
 | **Idempotency** | `X-Idempotency-Key` header + MongoDB deduplication with TTL |
 | **Compliance** | Audit logs, RBAC, consistency checks, auditor agent, financial retention |
