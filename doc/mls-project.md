@@ -1,6 +1,6 @@
 # Project Summary: Mandate Ledger Service - AP2 & UCP Protocol Implementation supported on MongoDB
 
-> For a detailed explanation of AP2 protocol theory (actors, VDCs, workflows, threat model, dispute resolution, ecosystem, and roadmap), see [AP2 Summary](./ap2-summary.md.md). This document focuses on **how this project implements** AP2 and UCP, and answers architectural and security questions specific to this codebase.
+> For a detailed explanation of AP2 protocol theory (actors, VDCs, workflows, threat model, dispute resolution, ecosystem, and roadmap), see [AP2 Summary](./ap2-summary.md). This document focuses on **how this project implements** AP2 and UCP, and answers architectural and security questions specific to this codebase.
 
 ## Table of Contents
 
@@ -832,8 +832,8 @@ This is by design — just as the web works because anyone can create a website 
 | **Multi-Protocol** | UCP for commerce, A2A for agent-agent, MCP for agent-tools, AP2 for trust |
 
 ## References
-- [AP2 Protocol Summary](AP2_Protocol_Summary.md) — detailed protocol theory, actors, workflows, security deep dive, ecosystem
-- [MongoDB — Mandate Ledger Service - AP2 Payment Flow Demo](https://github.com/mongodb-partners/aifac-mandate-ledger-service-AP2/tree/main)
+- [AP2 Protocol Summary](AP2_Protocol_Summary.md) detailed protocol theory, actors, workflows, security deep dive, ecosystem
+- [MongoDB: Mandate Ledger Service - AP2 Payment Flow Demo](https://github.com/mongodb-partners/aifac-mandate-ledger-service-AP2/tree/main)
 - [Understanding UCP + AP2 Integration](https://github.com/mongodb-partners/aifac-mandate-ledger-service-AP2/blob/main/docs/UCP_AP2_INTEGRATION.md)
 - [UCP Specification](https://ucp.dev)
 - [A2A Protocol](https://a2a-protocol.org)
