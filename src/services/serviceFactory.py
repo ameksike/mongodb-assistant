@@ -24,12 +24,16 @@ class ServiceFactory:
 
     @staticmethod
     def getLlmService() -> LlmService:
-        provider = os.getenv("LLM_PROVIDER", "LOCAL")
-        logger.info(f"Resolving LlmService for provider: {provider}")
+        provider = os.getenv("LLM_PROVIDER", "LOCAL").upper()
+        logger.info("Resolving LlmService for provider: %s", provider)
         if provider == "REMOTE":
             from src.services.llmRemoteService import LlmRemoteService
 
             return LlmRemoteService()
+        if provider == "VERTEXAI":
+            from src.services.llmVertexAiService import LlmVertexAiService
+
+            return LlmVertexAiService()
         from src.services.llmLocalService import LlmLocalService
 
         return LlmLocalService()
