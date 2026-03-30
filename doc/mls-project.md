@@ -1,4 +1,4 @@
-# Project Summary: Mandate Ledger Service - AP2 & UCP Protocol Implementation
+# Project Summary: Mandate Ledger Service - AP2 & UCP Protocol Implementation supported on MongoDB
 
 ## Table of Contents
 
