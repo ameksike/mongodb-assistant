@@ -1088,3 +1088,9 @@ This is by design — just as the web works because anyone can create a website 
 | **Immutability** | Append-only inserts, hash chaining, state machine, no DELETE/UPDATE | `repositories/mandate_repository.py`, `core/hashing.py` |
 | **Idempotency** | `X-Idempotency-Key` header + MongoDB deduplication | `services/idempotency_service.py`, `api/routes/mandates.py` |
 | **Compliance** | Audit logs, RBAC, signatures, consistency checks, auditor agent | `repositories/audit_repository.py`, `services/auth_service.py` |
+
+## References
+- [MongoDB — Mandate Ledger Service - AP2 Payment Flow Demo](https://github.com/mongodb-partners/aifac-mandate-ledger-service-AP2/tree/main)
+- [Understanding UCP + AP2 Integration](https://github.com/mongodb-partners/aifac-mandate-ledger-service-AP2/blob/main/docs/UCP_AP2_INTEGRATION.md)
+- [UCP + AP2 Integration Demo](https://github.com/mongodb-partners/aifac-mandate-ledger-service-AP2/blob/main/example/ucp_flow/README.md)
+- [Agent Payments Protocol (AP2) - Complete Summary](./ap2-summary.md)
