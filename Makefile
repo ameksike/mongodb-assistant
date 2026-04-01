@@ -6,15 +6,16 @@
 # ============================================================================
 
 .DEFAULT_GOAL := help
-BASE_PYTHON := python
 VENV_DIR := venv
 ifeq ($(OS),Windows_NT)
+BASE_PYTHON := python
 VENV_BIN := $(VENV_DIR)/Scripts
 VENV_PYTHON := $(VENV_BIN)/python.exe
 VENV_PIP := $(VENV_BIN)/pip.exe
 VENV_UVICORN := $(VENV_BIN)/uvicorn.exe
 VENV_PYTEST := $(VENV_BIN)/pytest.exe
 else
+BASE_PYTHON := $(shell command -v python3 2>/dev/null || echo python)
 VENV_BIN := $(VENV_DIR)/bin
 VENV_PYTHON := $(VENV_BIN)/python
 VENV_PIP := $(VENV_BIN)/pip
