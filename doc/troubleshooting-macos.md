@@ -4,6 +4,49 @@ Common issues when setting up the project on macOS and how to fix them.
 
 ---
 
+## Manual setup (without `make`)
+
+If you don't have GNU Make installed or prefer to run commands directly:
+
+```bash
+# 1. Pre-flight check
+python3 bin/check.py
+
+# 2. Create virtual environment
+python3 -m venv venv
+
+# 3. Activate the virtual environment
+source venv/bin/activate
+
+# 4. Install dependencies
+pip install -r requirements.txt
+
+# 5. Create cfg/.env from example
+cp cfg/.env.example cfg/.env
+
+# 6. Edit configuration (set LLM_PROVIDER, model path, etc.)
+nano cfg/.env
+
+# 7. Download a model (optional, only for LLM_PROVIDER=LOCAL)
+python bin/download.py --model phi-2
+
+# 8. Start the server
+uvicorn src.main:app --reload --host 0.0.0.0 --port 3333
+
+# 9. Run tests (in a separate terminal, with venv activated)
+pytest tests/ -v
+```
+
+> **Tip:** after step 3, all commands (`pip`, `python`, `uvicorn`, `pytest`) use the virtualenv automatically. You don't need to prefix with `venv/bin/`.
+
+To deactivate the virtualenv when you're done:
+
+```bash
+deactivate
+```
+
+---
+
 ## 1. `llama-cpp-python` fails to install (Xcode license / compiler not found)
 
 ### Symptom
@@ -129,25 +172,33 @@ open "/Applications/Python 3.10/Install Certificates.command"
 make: python: No such file or directory
 ```
 
+or (manual mode):
+
+```
+python: command not found
+```
+
 ### Cause
 
 macOS does not ship a `python` binary. The correct command is `python3`. Older macOS versions had `/usr/bin/python` pointing to Python 2, but Apple removed it.
 
 ### Solution
 
-This is already fixed in the Makefile. It auto-detects `python3` on macOS/Linux:
+When using `make`, this is already handled. The Makefile auto-detects `python3` on macOS/Linux:
 
 ```makefile
 BASE_PYTHON := $(shell command -v python3 2>/dev/null || echo python)
 ```
 
-If you still see this error, verify Python 3 is installed:
+For manual setup, always use `python3` instead of `python`:
 
 ```bash
 python3 --version
+python3 -m venv venv
+python3 bin/check.py
 ```
 
-If not installed:
+If Python 3 is not installed:
 
 ```bash
 # Homebrew (recommended)
@@ -181,7 +232,11 @@ Or use pre-built wheels (see section 1, option B) to skip compilation entirely.
 Run the pre-flight check to identify missing dependencies before setup:
 
 ```bash
+# With make
 make preflight
+
+# Without make
+python3 bin/check.py
 ```
 
 Expected output on a correctly configured macOS system:
@@ -204,4 +259,4 @@ Expected output on a correctly configured macOS system:
   Ready to run: make project:setup
 ```
 
-Any `[FAIL]` or `[WARN]` items should be addressed before running `make setup`.
+Any `[FAIL]` or `[WARN]` items should be addressed before running setup.
