@@ -2,10 +2,11 @@
 
 import json
 import logging
+import ssl
 import sys
 from pathlib import Path
 from urllib.error import URLError
-from urllib.request import urlretrieve
+from urllib.request import urlopen, Request
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,22 @@ class ModelDownloadService:
         print()
 
         try:
-            urlretrieve(url, str(destPath), reporthook=self._progressHook)
+            sslCtx = self._sslContext()
+            req = Request(url, headers={"User-Agent": "mongodb-assistant/1.0"})
+            with urlopen(req, context=sslCtx) as resp:
+                totalSize = int(resp.headers.get("Content-Length", 0))
+                blockSize = 256 * 1024
+                downloaded = 0
+                blockNum = 0
+                with open(destPath, "wb") as f:
+                    while True:
+                        chunk = resp.read(blockSize)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        blockNum += 1
+                        self._progressHook(blockNum, blockSize, totalSize)
             print()
             size = destPath.stat().st_size / (1024 * 1024)
             logger.info("Download complete: %s MB", int(size))
@@ -166,6 +182,47 @@ class ModelDownloadService:
             logger.info("No .gguf / .bin files found in models/.")
         else:
             logger.info("Cleaned %s model file(s) from models/.", removed)
+
+    @staticmethod
+    def _sslContext() -> ssl.SSLContext:
+        """Build an SSL context that works on macOS, Windows, and Linux.
+
+        macOS Python (from python.org) ships its own OpenSSL and often
+        cannot find the system certificate store, causing
+        ``CERTIFICATE_VERIFY_FAILED``.  We try ``certifi`` first (bundled
+        with pip), then the default context, and only as a last resort
+        fall back to unverified (with a warning).
+        """
+        try:
+            import certifi
+
+            return ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            pass
+
+        ctx = ssl.create_default_context()
+        try:
+            ctx.load_default_certs()
+        except Exception:
+            pass
+
+        try:
+            import urllib.request
+
+            urllib.request.urlopen(
+                "https://huggingface.co", context=ctx, timeout=5
+            )
+            return ctx
+        except Exception:
+            logger.warning(
+                "SSL certificate verification failed. "
+                "Install certifi (`pip install certifi`) to fix permanently. "
+                "Falling back to unverified HTTPS for this download."
+            )
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            return ctx
 
     def _progressHook(self, blockNum: int, blockSize: int, totalSize: int):
         downloaded = blockNum * blockSize
