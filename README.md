@@ -91,37 +91,36 @@ make run:dev
 
 Main targets use **`namespace:action`** (GNU Make escapes these as `model\:download` in the Makefile; you type **`make model:download`**).
 
-| Command | Description |
-|---|---|
-| `make project:check` | Pre-flight: verify Python version, tools, files, models |
-| `make project:setup` | Full setup: venv, deps, `cfg/.env` |
-| `make project:env` | Create `cfg/.env` from example only |
-| `make project:info` | Print env, models on disk, Python version |
-| `make project:clean` | Remove `__pycache__`, `.pytest_cache`, `*.pyc` |
-| `make deps:install` | Install dependencies into `venv/` |
-| `make run:dev` | API dev server (reload); default port **3333** (`APP_PORT` in Makefile) |
-| `make run:start` | API production mode; same port variable |
-| `make run:health` | `GET /health` on the same port as `run:dev` (needs `curl`) |
-| `make model:download` | Download default catalog model (skips if file exists) |
-| `make model:list` | Catalog + on-disk status |
-| `make model:select modelName=phi-2` | Download one catalog model |
-| `make model:select modelName=phi-2 forceDownload=1` | Force re-download |
-| `make model:custom huggingfaceRepo=... fileName=...` | Custom Hugging Face GGUF |
-| `make model:remove modelName=phi-2` | Remove catalog model file from `models/` |
-| `make model:remove fileName=foo.gguf` | Remove a file by basename |
-| `make model:clean` | Delete all `.gguf` / `.bin` under `models/` |
-| `make workflow:import` | Import `cfg/workflows/*.json` into MongoDB (uses `MDB_*` from `cfg/.env`) |
-| `make workflow:importDryRun` | Show which workflows would be imported (no DB write) |
-| `make workflow:list` | `GET /api/workflows` on the running server |
-| `make test:run` | Pytest |
-| `make test:cov` | Pytest + coverage |
-| `make quality:lint` | Ruff static analysis (`ruff check`) |
-| `make quality:format` | Ruff formatter (`ruff format`) |
-| `make quality:formatCheck` | Fail if sources are not formatted |
-| `make quality:check` | Lint + format check + tests |
-| `make help` | Short list of groups and examples |
+| Command | Alias | Description |
+|---|---|---|
+| `make project:check` | `make preflight` | Pre-flight: verify Python version, tools, files, models |
+| `make project:setup` | `make setup` | Full setup: venv, deps, `cfg/.env` |
+| `make project:env` | | Create `cfg/.env` from example only |
+| `make project:info` | | Print env, models on disk, Python version |
+| `make project:clean` | `make clean` | Remove `__pycache__`, `.pytest_cache`, `*.pyc` |
+| `make deps:install` | `make install` | Install dependencies into `venv/` |
+| `make run:dev` | `make dev` | API dev server (reload); default port **3333** (`APP_PORT`) |
+| `make run:start` | `make start` | API production mode; same port variable |
+| `make run:health` | `make health` | `GET /health` (needs `curl`) |
+| `make model:download` | | Download default catalog model (skips if file exists) |
+| `make model:list` | | Catalog + on-disk status |
+| `make model:select modelName=phi-2` | | Download one catalog model |
+| `make model:custom huggingfaceRepo=... fileName=...` | | Custom Hugging Face GGUF |
+| `make model:remove modelName=phi-2` | | Remove catalog model file from `models/` |
+| `make model:remove fileName=foo.gguf` | | Remove a file by basename |
+| `make model:clean` | `make clean-models` | Delete all `.gguf` / `.bin` under `models/` |
+| `make workflow:import` | | Import `cfg/workflows/*.json` into MongoDB |
+| `make workflow:importDryRun` | | Show which workflows would be imported (no DB write) |
+| `make workflow:list` | | `GET /api/workflows` on the running server |
+| `make test:run` | `make test` | Pytest |
+| `make test:cov` | `make test-cov` | Pytest + coverage |
+| `make quality:lint` | `make lint` | Ruff static analysis (`ruff check`) |
+| `make quality:format` | `make format` | Ruff formatter (`ruff format`) |
+| `make quality:formatCheck` | | Fail if sources are not formatted |
+| `make quality:check` | `make check` | Lint + format check + tests |
+| `make help` | | Short list of groups and examples |
 
-**Aliases (short names):** `preflight`, `setup`, `install`, `dev`, `start`, `test`, `test-cov`, `check`, `lint`, `format`, `clean`, `health`, `clean-models` (same as `model:clean`).
+Optional: `make model:select modelName=phi-2 forceDownload=1` to force re-download.
 
 ### Workflow import (MongoDB)
 
