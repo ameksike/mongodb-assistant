@@ -6,10 +6,11 @@ Detailed documentation for the Conversational Assistance System.
 
 ## 🚀 Get Started (Simple)
 
-1) Prepare the project:
+1) Verify prerequisites and prepare the project:
 
 ```bash
-make setup
+make preflight        # pre-flight: verify Python, tools, files
+make setup            # same as make project:setup
 ```
 
 2) Download one model and run the server:
@@ -33,7 +34,7 @@ Need manual setup without `make`? See [setup.md](setup.md).
 
 | Document | Description |
 |----------|-------------|
-| [setup.md](setup.md) | Complete setup guide: simple path with `make` and full manual path without `make` |
+| [setup.md](setup.md) | Complete setup guide: simple path with `make` and full manual path without `make`. Includes `make project:check` (alias `make preflight`) for pre-flight verification |
 | [llm.md](llm.md) | Local LLM deployment: **in-process** (`llama-cpp-python`) vs **external servers** (e.g. Ollama); how this relates to LangChain |
 | [manual-postman-curl.md](manual-postman-curl.md) | Manual tests: **curl** and Postman for `/health`, `/api/workflows`, and `/api/process`, with JSON examples under [requests/](requests/) |
 | [code-quality.md](code-quality.md) | **Ruff**: lint, format, `pyproject.toml`, and Make targets (`quality:lint`, `quality:format`, `quality:check`) |
@@ -150,6 +151,21 @@ Each workflow file must follow this structure:
   ]
 }
 ```
+
+## Docker
+
+The project includes a multi-stage `Dockerfile` and `docker-compose.yml` for containerised deployment:
+
+```bash
+docker compose up --build
+```
+
+Key design decisions:
+- **Multi-stage build**: C++ compilation of `llama-cpp-python` in a builder stage, slim `python:3.10-slim` runtime with only the virtualenv
+- **Model as volume**: GGUF files are mounted at `/app/models`, never baked into the image
+- **Non-root user**: runtime runs as `app` user
+- **Health check**: built-in `HEALTHCHECK` hitting `/health`
+- **JSON-enforced output**: available via `LLM_PROVIDER=VERTEXAI` (uses `response_mime_type="application/json"`)
 
 ## Design Patterns Used
 

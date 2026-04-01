@@ -6,15 +6,16 @@
 # ============================================================================
 
 .DEFAULT_GOAL := help
-BASE_PYTHON := python
 VENV_DIR := venv
 ifeq ($(OS),Windows_NT)
+BASE_PYTHON := python
 VENV_BIN := $(VENV_DIR)/Scripts
 VENV_PYTHON := $(VENV_BIN)/python.exe
 VENV_PIP := $(VENV_BIN)/pip.exe
 VENV_UVICORN := $(VENV_BIN)/uvicorn.exe
 VENV_PYTEST := $(VENV_BIN)/pytest.exe
 else
+BASE_PYTHON := $(shell command -v python3 2>/dev/null || echo python)
 VENV_BIN := $(VENV_DIR)/bin
 VENV_PYTHON := $(VENV_BIN)/python
 VENV_PIP := $(VENV_BIN)/pip
@@ -29,6 +30,9 @@ APP_MODULE := src.main:app
 APP_PORT := 3333
 ENV_FILE := cfg/.env
 ENV_EXAMPLE := cfg/.env.example
+PROJECT_NAME := Conversational Assistance System
+PROJECT_VERSION := 1.0.0
+MIN_PYTHON_VERSION := 3.10
 
 # ---- Dependencies ---------------------------------------------------------
 
@@ -46,6 +50,10 @@ deps\:installDev: deps\:install ## Same as deps:install (pytest and ruff are in 
 	@echo "Dev tooling is listed in requirements.txt (no extra pip step)."
 
 # ---- Project --------------------------------------------------------------
+
+.PHONY: project\:check
+project\:check: ## Pre-flight check: Python version, tools, files, models
+	@$(BASE_PYTHON) bin/check.py
 
 .PHONY: project\:env
 project\:env: ## Create cfg/.env from example if it does not exist
@@ -179,6 +187,7 @@ quality\:check: quality\:lint quality\:formatCheck test\:run ## Lint + format ch
 help: ## Show main targets (type colons as shown; GNU Make uses model\:name in the file)
 	@echo ""
 	@echo "Examples:"
+	@echo "  make project:check   (pre-flight: verify Python, tools, files)"
 	@echo "  make project:setup"
 	@echo "  make model:select modelName=phi-2   (optional: forceDownload=1 to re-download)"
 	@echo "  make model:custom huggingfaceRepo=TheBloke/phi-2-GGUF fileName=phi-2.Q4_K_M.gguf"
@@ -188,17 +197,18 @@ help: ## Show main targets (type colons as shown; GNU Make uses model\:name in t
 	@echo "  make test:run"
 	@echo ""
 	@echo "Groups:  deps:venv deps:install deps:installDev"
-	@echo "         project:setup project:env project:info project:clean"
+	@echo "         project:check project:setup project:env project:info project:clean"
 	@echo "         run:dev run:start run:health"
 	@echo "         model:download model:list model:select model:custom model:remove model:clean"
 	@echo "         workflow:import workflow:importDryRun workflow:list"
 	@echo "         test:run test:cov test:watch"
 	@echo "         quality:lint quality:format quality:formatCheck quality:check"
 	@echo ""
-	@echo "Aliases: setup install dev start test check lint format clean health"
+	@echo "Aliases: preflight setup install dev start test check lint format clean health"
 	@echo ""
 
-.PHONY: install setup dev start test check lint format test-cov clean-models
+.PHONY: preflight install setup dev start test check lint format test-cov clean-models
+preflight: project\:check
 install: deps\:install
 setup: project\:setup
 dev: run\:dev
