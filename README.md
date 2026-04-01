@@ -8,7 +8,8 @@ This project started as a PoC (Proof of Concept) of a virtual assistant to perfo
 
 - 📋 Workflow-driven conversation guidance with configurable steps, goals, and policies
 - 🔌 Pluggable workflow providers: **JSON files** (local) or **MongoDB** (remote)
-- 🧠 Pluggable LLM providers: **Vertex AI Gemini 2.5 Flash** (remote) or **local GGUF model** via llama-cpp-python
+- 🧠 Pluggable LLM providers: **local GGUF** (llama-cpp-python), **REMOTE** (LangChain + Gemini), or **VERTEXAI** (google-genai SDK direct, JSON-enforced)
+- 🐳 Docker support: multi-stage build optimised for local LLM deployment
 - 💉 Dependency Injection architecture for seamless provider switching
 - ✅ Pydantic request/response validation
 - 🏗️ Class-based OOP design throughout
@@ -20,7 +21,8 @@ This project started as a PoC (Proof of Concept) of a virtual assistant to perfo
 Use this when you want to **start the API** (local LLM example):
 
 ```bash
-make setup
+make preflight                        # pre-flight: verify Python, tools, files
+make setup                            # same as make project:setup
 make model:select modelName=phi-2
 make dev
 ```
@@ -91,6 +93,7 @@ Main targets use **`namespace:action`** (GNU Make escapes these as `model\:downl
 
 | Command | Description |
 |---|---|
+| `make project:check` | Pre-flight: verify Python version, tools, files, models |
 | `make project:setup` | Full setup: venv, deps, `cfg/.env` |
 | `make project:env` | Create `cfg/.env` from example only |
 | `make project:info` | Print env, models on disk, Python version |
@@ -118,7 +121,7 @@ Main targets use **`namespace:action`** (GNU Make escapes these as `model\:downl
 | `make quality:check` | Lint + format check + tests |
 | `make help` | Short list of groups and examples |
 
-**Aliases (short names):** `setup`, `install`, `dev`, `start`, `test`, `test-cov`, `check`, `lint`, `format`, `clean`, `health`, `clean-models` (same as `model:clean`).
+**Aliases (short names):** `preflight`, `setup`, `install`, `dev`, `start`, `test`, `test-cov`, `check`, `lint`, `format`, `clean`, `health`, `clean-models` (same as `model:clean`).
 
 ### Workflow import (MongoDB)
 
@@ -202,7 +205,7 @@ All settings are loaded from `cfg/.env`:
 |---|---|---|
 | `WORKFLOW_PROVIDER` | `JSON` | Workflow source: `JSON` or `MDB` |
 | `WORKFLOW_DIR` | `cfg/workflows` | Directory for JSON workflow files |
-| `LLM_PROVIDER` | `LOCAL` | LLM provider: `LOCAL` or `REMOTE` |
+| `LLM_PROVIDER` | `LOCAL` | LLM provider: `LOCAL`, `REMOTE`, or `VERTEXAI` |
 | `LLM_LOCAL_MODEL_PATH` | `models/mistral-7b-instruct-v0.2.Q4_K_M.gguf` | Path to local GGUF model |
 | `GOOGLE_CLOUD_PROJECT` | - | Google Cloud project for REMOTE LLM (Vertex); omit to use API key |
 | `GOOGLE_CLOUD_LOCATION` | `us-central1` | Region for Vertex |
@@ -211,6 +214,30 @@ All settings are loaded from `cfg/.env`:
 | `MDB_DATABASE_NAME` | - | MongoDB database name |
 | `MDB_COLLECTION_NAME` | - | MongoDB collection name |
 | `LLM_PROMPT_FORMAT` | `text` | Prompt packaging: `text` or `json` |
+| `GOOGLE_API_KEY` | - | API key for REMOTE / VERTEXAI (mutually exclusive with Vertex AI ADC) |
+
+## 🐳 Docker
+
+Build and run with a local LLM model (no `make` required):
+
+```bash
+docker compose up --build
+```
+
+The Dockerfile uses a multi-stage build: C++ compilation of `llama-cpp-python` in the builder stage, slim runtime image with only the virtualenv. The GGUF model is mounted as a volume, never baked into the image.
+
+```bash
+# Or with plain docker:
+docker build -t mongodb-assistant .
+docker run -p 3333:3333 \
+  -v ./models:/app/models:ro \
+  -v ./cfg/.env:/app/cfg/.env:ro \
+  mongodb-assistant
+```
+
+Override the model at runtime: `-e LLM_LOCAL_MODEL_PATH=models/phi-2.Q4_K_M.gguf`
+
+For AVX2 SIMD optimisation on modern CPUs: `docker build --build-arg CMAKE_ARGS="-DGGML_AVX2=ON" -t mongodb-assistant .`
 
 ## 📁 Project Structure
 
@@ -222,7 +249,9 @@ cfg/
 doc/                   Detailed documentation
 iac/                   Infrastructure files (Docker/K8s)
 models/                Local LLM model files (.gguf)
-bin/                   CLI scripts (download.py, import_workflows.py)
+bin/                   CLI scripts (check.py, download.py, import_workflows.py)
+Dockerfile             Multi-stage build (LOCAL LLM optimised)
+docker-compose.yml     One-command container deployment
 src/controllers/       FastAPI REST API layer
 src/models/            Pydantic API schemas
 src/services/          Business logic (abstract + concrete)
@@ -249,7 +278,8 @@ These open protocols sit alongside conversational and commerce-oriented agent sy
 | Component | Documentation |
 |-----------|----------------|
 | **LangChain** | [Python docs](https://python.langchain.com/docs/) |
-| **Gemini** (remote) | [Vertex AI generative AI](https://cloud.google.com/vertex-ai/generative-ai/docs/overview) · [LangChain `ChatGoogleGenerativeAI`](https://reference.langchain.com/python/integrations/langchain_google_genai/ChatGoogleGenerativeAI/) |
+| **Gemini** (REMOTE) | [Vertex AI generative AI](https://cloud.google.com/vertex-ai/generative-ai/docs/overview) · [LangChain `ChatGoogleGenerativeAI`](https://reference.langchain.com/python/integrations/langchain_google_genai/ChatGoogleGenerativeAI/) |
+| **Gemini** (VERTEXAI) | [google-genai SDK](https://googleapis.github.io/python-genai/) · Direct `genai.Client` with `response_mime_type="application/json"` |
 | **Local GGUF** (llama-cpp) | [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) · [LangChain LlamaCpp](https://python.langchain.com/docs/integrations/llms/llamacpp/) |
 
 ## 📄 License
