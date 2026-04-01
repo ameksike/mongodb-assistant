@@ -260,7 +260,7 @@ tests/                 Unit and integration tests
 
 ## 📚 Documentation
 
-See [doc/README.md](doc/README.md) for detailed architecture and provider documentation. For **local LLM process layout** (in-process `llama-cpp-python` vs external servers like Ollama), see [doc/llm.md](doc/llm.md).
+See [doc/README.md](doc/README.md) for detailed architecture and provider documentation. For **local LLM process layout** (in-process `llama-cpp-python` vs external servers like Ollama), see [doc/llm.md](doc/llm.md). For **macOS-specific issues** (`llama-cpp-python` build, SSL certificates, `python3` detection), see [doc/troubleshooting-macos.md](doc/troubleshooting-macos.md).
 
 ### Related standards (agentic commerce and agents)
 
