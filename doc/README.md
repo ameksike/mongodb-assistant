@@ -34,10 +34,11 @@ Need manual setup without `make`? See [setup.md](setup.md).
 
 | Document | Description |
 |----------|-------------|
-| [setup.md](setup.md) | Complete setup guide: simple path with `make` and full manual path without `make`. Includes `make project:check` (alias `make preflight`) for pre-flight verification |
-| [llm.md](llm.md) | Local LLM deployment: **in-process** (`llama-cpp-python`) vs **external servers** (e.g. Ollama); how this relates to LangChain |
-| [manual-postman-curl.md](manual-postman-curl.md) | Manual tests: **curl** and Postman for `/health`, `/api/workflows`, and `/api/process`, with JSON examples under [requests/](requests/) |
-| [code-quality.md](code-quality.md) | **Ruff**: lint, format, `pyproject.toml`, and Make targets (`quality:lint`, `quality:format`, `quality:check`) |
+| [Setup](setup.md) | Complete setup guide: simple path with `make` and full manual path without `make`. Includes `make project:check` (alias `make preflight`) for pre-flight verification |
+| [LLM](llm.md) | Local LLM deployment: **in-process** (`llama-cpp-python`) vs **external servers** (e.g. Ollama); how this relates to LangChain |
+| [Manual Postman](manual-postman-curl.md) | Manual tests: **curl** and Postman for `/health`, `/api/workflows`, and `/api/process`, with JSON examples under [requests/](requests/) |
+| [Code Quality](code-quality.md) | **Ruff**: lint, format, `pyproject.toml`, and Make targets (`quality:lint`, `quality:format`, `quality:check`) |
+| [Troubleshooting Mac OS](troubleshooting-macos.md) | macOS issues: `llama-cpp-python` build (Xcode license, pre-built wheels, Homebrew GCC), SSL certificates, `python` vs `python3`, missing `cmake` |
 
 ---
 
