@@ -1,6 +1,6 @@
 # 🤖 Conversational Assistance System
 
-This project started as a PoC (Proof of Concept) of a virtual assistant to perform demonstrations for the project ['Mandate Ledger Service - AP2 & UCP Protocol Implementation supported on MongoDB'](./doc/mls-project.md). A dynamic conversational assistance system built with **Python**, **FastAPI**, **LangChain**, **MongoDB**, and LLMs. The system analyzes conversation context and guides interactions based on configurable workflow definitions.
+This project started as a PoC (Proof of Concept) of a virtual assistant to perform demonstrations for the project ['Mandate Ledger Service -  Universal Commerce Protocol (UCP) supported on MongoDB'](./doc/mls-project.md). A dynamic conversational assistance system built with **Python**, **FastAPI**, **LangChain**, **MongoDB**, and LLMs. The system analyzes conversation context and guides interactions based on configurable workflow definitions.
 
 ---
 
@@ -271,6 +271,7 @@ These open protocols sit alongside conversational and commerce-oriented agent sy
 | **UCP** | Universal Commerce Protocol — common language for platforms, agents, and merchants for agentic commerce | [ucp.dev](https://ucp.dev/) · [Specification overview](https://ucp.dev/latest/specification/overview/) · [Google Merchant / UCP](https://developers.google.com/merchant/ucp) · [GitHub: Universal-Commerce-Protocol/ucp](https://github.com/Universal-Commerce-Protocol/ucp) |
 | **AP2** | Agent Payments Protocol — secure, verifiable payments initiated by agents (often used with A2A / MCP) | [ap2-protocol.org](https://ap2-protocol.org/) · [Google Cloud: Announcing AP2](https://cloud.google.com/blog/products/ai-machine-learning/announcing-agents-to-payments-ap2-protocol) · [GitHub: google-agentic-commerce/AP2](https://github.com/google-agentic-commerce/AP2) |
 | **A2A** | Agent2Agent — discovery, tasks, and messaging between agents without sharing internal state | [A2A specification](https://google.github.io/A2A/specification/) · [a2a-protocol.org](https://a2a-protocol.org/) · [GitHub: google/A2A](https://github.com/google/A2A) |
+| **x402** | HTTP-native payment standard — servers respond with `402 Payment Required` and clients pay instantly with stablecoins; zero accounts, zero friction, designed for agentic payments at scale | [x402.org](https://www.x402.org/) · [Whitepaper](https://www.x402.org/whitepaper) |
 
 ### LLM stack used in this project
 
